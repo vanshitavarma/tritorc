@@ -9,6 +9,7 @@ export const getKeywords = async (_req, res, next) => {
   try {
     const keywords = await loadKeywords();
     res.status(200).json({
+      success: true,
       status: 'success',
       data: {
         keywords,
@@ -46,13 +47,23 @@ export const createScan = async (req, res, next) => {
     scanStore.saveReport(scanId, reportBuffer);
     scanStore.saveCsvReport(scanId, csvBuffer);
 
+    const successful = results.filter((r) => r.status === 'scanned').length;
+    const failed = results.filter((r) => r.status === 'failed').length;
+
     res.status(201).json({
+      success: true,
       status: 'success',
+      message: 'Tender scan completed',
       data: {
         scanId,
         scannedAt,
         totalFiles: req.files.length,
         results,
+        summary: {
+          total: results.length,
+          successful,
+          failed,
+        },
         reportUrl: `/api/scans/${scanId}/report`,
         csvReportUrl: `/api/scans/${scanId}/csv`,
       },
@@ -70,6 +81,7 @@ export const getScanById = async (req, res, next) => {
     }
 
     res.status(200).json({
+      success: true,
       status: 'success',
       data: scan,
     });

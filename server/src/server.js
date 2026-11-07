@@ -15,8 +15,8 @@ export const startServer = async () => {
       );
     }
 
-    activeServer = app.listen(env.port, () => {
-      logger.info(`Server listening on port ${env.port}`);
+    activeServer = app.listen(env.port, '0.0.0.0', () => {
+      logger.info(`Server listening on port ${env.port} on 0.0.0.0`);
     });
     return activeServer;
   } catch (error) {

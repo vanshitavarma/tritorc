@@ -44,6 +44,10 @@ export function useScan() {
       return;
     }
 
+    if (status === 'uploading') {
+      return; // Guard against concurrent duplicate submissions
+    }
+
     try {
       setStatus('uploading');
       setError(null);
@@ -54,7 +58,7 @@ export function useScan() {
       setStatus('error');
       setError(err.message || 'Scanning failed');
     }
-  }, [files]);
+  }, [files, status]);
 
   return {
     files,

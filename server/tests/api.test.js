@@ -25,8 +25,10 @@ describe('Scan REST API Integration Tests', () => {
     it('returns 400 when no files are attached', async () => {
       const res = await request(app).post('/api/scans');
       expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
       expect(res.body.status).toBe('error');
       expect(res.body.code).toBe('NO_FILES');
+      expect(res.body.error.code).toBe('NO_FILES');
     });
 
     it('rejects unsupported file formats (.txt) with an error', async () => {
@@ -35,8 +37,10 @@ describe('Scan REST API Integration Tests', () => {
         .attach('files', Buffer.from('invalid file content'), 'sample.txt');
 
       expect(res.status).toBe(415);
+      expect(res.body.success).toBe(false);
       expect(res.body.status).toBe('error');
       expect(res.body.code).toBe('UNSUPPORTED_FORMAT');
+      expect(res.body.error.code).toBe('UNSUPPORTED_FORMAT');
     });
 
     it('scans multi-file batch with GeM PDFs and returns 201 with verdicts', async () => {
@@ -49,9 +53,12 @@ describe('Scan REST API Integration Tests', () => {
         .attach('files', opgcPath);
 
       expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
       expect(res.body.status).toBe('success');
+      expect(res.body.message).toBe('Tender scan completed');
       expect(res.body.data.scanId).toBeDefined();
       expect(res.body.data.totalFiles).toBe(2);
+      expect(res.body.data.summary).toEqual({ total: 2, successful: 2, failed: 0 });
       expect(res.body.data.results).toHaveLength(2);
 
       const sailResult = res.body.data.results.find((r) =>
@@ -76,6 +83,45 @@ describe('Scan REST API Integration Tests', () => {
       expect(res.body.data.reportUrl).toBe(`/api/scans/${res.body.data.scanId}/report`);
     });
 
+    it('scans all three GeM PDFs simultaneously in a batch with independent results', async () => {
+      const sailPath = path.join(fixturesDir, 'GeM-Bidding-9649647.pdf');
+      const opgcPath = path.join(fixturesDir, 'GeM-Bidding-9563430.pdf');
+      const bhelPath = path.join(fixturesDir, 'GeM-Bidding-9605104.pdf');
+
+      const res = await request(app)
+        .post('/api/scans')
+        .attach('files', sailPath)
+        .attach('files', opgcPath)
+        .attach('files', bhelPath);
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.summary).toEqual({ total: 3, successful: 3, failed: 0 });
+      expect(res.body.data.results).toHaveLength(3);
+
+      const sail = res.body.data.results.find((r) =>
+        (r.originalFileName || r.documentName).includes('9649647')
+      );
+      const opgc = res.body.data.results.find((r) =>
+        (r.originalFileName || r.documentName).includes('9563430')
+      );
+      const bhel = res.body.data.results.find((r) =>
+        (r.originalFileName || r.documentName).includes('9605104')
+      );
+
+      expect(sail).toBeDefined();
+      expect(sail.status).toBe('scanned');
+      expect(sail.relevance).toBe('Related');
+
+      expect(opgc).toBeDefined();
+      expect(opgc.status).toBe('scanned');
+      expect(opgc.relevance).toBe('Not Related');
+
+      expect(bhel).toBeDefined();
+      expect(bhel.status).toBe('scanned');
+      expect(bhel.relevance).toBe('Not Related');
+    });
+
     it('isolates corrupt file failure without failing the entire batch', async () => {
       const validDocx = path.join(fixturesDir, 'civil_works.docx');
       const corruptPdfBuffer = Buffer.from('%PDF-1.4\ncorrupted content that fails parsing');
@@ -86,6 +132,8 @@ describe('Scan REST API Integration Tests', () => {
         .attach('files', corruptPdfBuffer, 'broken.pdf');
 
       expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.summary).toEqual({ total: 2, successful: 1, failed: 1 });
       expect(res.body.data.results).toHaveLength(2);
 
       const validResult = res.body.data.results.find((r) =>
