@@ -41,6 +41,15 @@ describe('Environment Configuration (env.js)', () => {
     );
   });
 
+  it('strips redundant MONGODB_URI= prefix if accidentally included in value', () => {
+    const prefixedEnv = {
+      ...baseValidEnv,
+      MONGODB_URI: 'MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/test',
+    };
+    const config = parseAndValidateEnv(prefixedEnv);
+    expect(config.mongodbUri).toBe('mongodb+srv://user:pass@cluster.mongodb.net/test');
+  });
+
   it('throws an error if AI_ENABLED is true but GEMINI_API_KEY is empty', () => {
     const invalidEnv = { ...baseValidEnv, AI_ENABLED: 'true', GEMINI_API_KEY: ' ' };
     expect(() => parseAndValidateEnv(invalidEnv)).toThrow(

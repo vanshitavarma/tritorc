@@ -22,7 +22,10 @@ export const parseAndValidateEnv = (source = process.env) => {
 
   const maxUploadMb = parsePositiveInteger(source.MAX_UPLOAD_MB, 'MAX_UPLOAD_MB');
   const maxFiles = parsePositiveInteger(source.MAX_FILES, 'MAX_FILES');
-  const mongodbUri = source.MONGODB_URI.trim();
+  let mongodbUri = source.MONGODB_URI.trim();
+  if (mongodbUri.startsWith('MONGODB_URI=')) {
+    mongodbUri = mongodbUri.replace(/^MONGODB_URI=\s*/, '').trim();
+  }
 
   if (!mongodbUri.startsWith('mongodb://') && !mongodbUri.startsWith('mongodb+srv://')) {
     throw new Error('MONGODB_URI must begin with mongodb:// or mongodb+srv://');
