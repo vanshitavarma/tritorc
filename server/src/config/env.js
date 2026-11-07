@@ -42,6 +42,18 @@ export const parseAndValidateEnv = (source = process.env) => {
     ? parsePositiveInteger(source.EMBEDDING_DIMENSIONS, 'EMBEDDING_DIMENSIONS')
     : 768;
 
+  const chunkSizeTokens = source.CHUNK_SIZE_TOKENS
+    ? parsePositiveInteger(source.CHUNK_SIZE_TOKENS, 'CHUNK_SIZE_TOKENS')
+    : 800;
+
+  const chunkOverlapTokens = source.CHUNK_OVERLAP_TOKENS
+    ? parsePositiveInteger(source.CHUNK_OVERLAP_TOKENS, 'CHUNK_OVERLAP_TOKENS')
+    : 120;
+
+  const embeddingBatchSize = source.EMBEDDING_BATCH_SIZE
+    ? parsePositiveInteger(source.EMBEDDING_BATCH_SIZE, 'EMBEDDING_BATCH_SIZE')
+    : 16;
+
   return Object.freeze({
     port,
     clientOrigin: source.CLIENT_ORIGIN.trim(),
@@ -53,6 +65,9 @@ export const parseAndValidateEnv = (source = process.env) => {
     geminiGenerationModel: (source.GEMINI_GENERATION_MODEL || 'gemini-2.5-flash').trim(),
     geminiEmbeddingModel: (source.GEMINI_EMBEDDING_MODEL || 'text-embedding-004').trim(),
     embeddingDimensions,
+    chunkSizeTokens,
+    chunkOverlapTokens,
+    embeddingBatchSize,
     vectorIndexName: (source.VECTOR_INDEX_NAME || 'tender_vector_index').trim(),
   });
 };
