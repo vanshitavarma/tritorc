@@ -344,3 +344,5 @@ cd client && npm run build
 ## 10. License
 
 Proprietary — Developed for **Tritorc Equipment Pvt. Ltd.** All rights reserved.
+#   t r i t o r c  
+ 
