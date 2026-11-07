@@ -828,3 +828,192 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+// Document Type Badges
+.doc-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+
+  &.badge-doc-tender {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+  }
+
+  &.badge-doc-sow {
+    background-color: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
+
+  &.badge-doc-procurement {
+    background-color: #f5f3ff;
+    color: #6d28d9;
+    border: 1px solid #ddd6fe;
+  }
+
+  &.badge-doc-non-tender {
+    background-color: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+  }
+
+  &.badge-doc-review {
+    background-color: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+  }
+}
+
+// Additional StatusBanner stat cards
+.stat-card {
+  &.stat-valid .stat-value {
+    color: #0284c7;
+  }
+  &.stat-rejected .stat-value {
+    color: #dc2626;
+  }
+  &.stat-review .stat-value {
+    color: #d97706;
+  }
+}
+
+// Empty valid tenders banner
+.empty-valid-tenders-banner {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: $radius-md;
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+
+  p {
+    margin: 0;
+    color: $color-text-main;
+    font-size: 1rem;
+  }
+
+  .empty-subtext {
+    margin-top: 0.5rem;
+    font-size: 0.86rem;
+    color: $color-text-muted;
+  }
+}
+
+// Excluded / Non-Tender Documents Section
+.excluded-docs-section {
+  margin-top: 2rem;
+  background: #ffffff;
+  border: 1px solid #fee2e2;
+  border-radius: $radius-lg;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  .excluded-header {
+    margin-bottom: 1.25rem;
+
+    h4 {
+      margin: 0 0 0.35rem;
+      font-size: 1.08rem;
+      color: #991b1b;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .excluded-subtext {
+      margin: 0;
+      font-size: 0.86rem;
+      color: $color-text-muted;
+    }
+  }
+
+  .excluded-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1rem;
+  }
+
+  .excluded-card {
+    background: #fff8f8;
+    border: 1px solid #fecaca;
+    border-radius: $radius-md;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    &.card-review {
+      background: #fffdf5;
+      border-color: #fde68a;
+    }
+
+    .card-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+
+      .file-name-heading {
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: $color-text-main;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .card-reason-box {
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      border-radius: $radius-sm;
+      padding: 0.65rem 0.85rem;
+
+      .reason-label {
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 0.25rem;
+        color: #991b1b;
+      }
+
+      .reason-text {
+        margin: 0;
+        font-size: 0.85rem;
+        line-height: 1.45;
+        color: $color-text-main;
+      }
+    }
+
+    .detected-signals {
+      .signals-title {
+        display: block;
+        font-size: 0.76rem;
+        font-weight: 600;
+        color: $color-text-muted;
+        margin-bottom: 0.35rem;
+      }
+
+      .signals-list {
+        margin: 0;
+        padding-left: 1.2rem;
+        font-size: 0.8rem;
+        color: #4b5563;
+        line-height: 1.4;
+
+        li {
+          margin-bottom: 0.2rem;
+        }
+      }
+    }
+  }
+}

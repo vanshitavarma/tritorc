@@ -363,5 +363,58 @@ describe('Excel Report Generation (buildWorkbook)', () => {
       expect(sailRow.getCell(24).value).toBe('Related');
       expect(sailRow.getCell(24).fill?.fgColor?.argb).toMatch(/D9F2D9/i);
     });
+
+    it('excludes rejected non-tenders from primary sheet and populates Processing Summary sheet', async () => {
+      const mixedResults = [
+        {
+          documentName: 'GeM-Bidding-9649647.pdf',
+          originalFileName: 'GeM-Bidding-9649647.pdf',
+          documentType: 'TENDER',
+          isValidTender: true,
+          status: 'scanned',
+          matches: [{ keyword: 'Hydraulic torque wrench', hits: 5 }],
+          distinctCount: 1,
+          relevance: 'Related',
+          tenderFields: { 'Tender No': 'GEM/2026/B/7824594' },
+        },
+        {
+          documentName: 'Tender_Keyword_Scanner_Assignment.pdf',
+          originalFileName: 'Tender_Keyword_Scanner_Assignment.pdf',
+          documentType: 'NON_TENDER',
+          isValidTender: false,
+          status: 'rejected',
+          rejectionReason: 'Internship evaluation assignment detected',
+          matches: [],
+          distinctCount: 0,
+          relevance: 'Not Assessed',
+          tenderFields: {},
+        },
+      ];
+
+      const buffer = await buildWorkbook(mixedResults);
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(buffer);
+
+      // 1. Primary sheet has only the valid tender
+      const primarySheet = wb.getWorksheet('Tender Scan Report');
+      expect(primarySheet.rowCount).toBe(2); // 1 header + 1 valid tender
+      expect(primarySheet.getRow(2).getCell(1).value).toBe('GeM-Bidding-9649647.pdf');
+
+      // 2. Processing Summary sheet has both documents
+      const summarySheet = wb.getWorksheet('Processing Summary');
+      expect(summarySheet).toBeDefined();
+      expect(summarySheet.rowCount).toBe(3); // 1 header + 2 documents
+
+      const rowValid = summarySheet.getRow(2);
+      expect(rowValid.getCell(1).value).toBe('GeM-Bidding-9649647.pdf');
+      expect(rowValid.getCell(2).value).toBe('TENDER');
+      expect(rowValid.getCell(3).value).toBe('Accepted (Scanned)');
+
+      const rowRejected = summarySheet.getRow(3);
+      expect(rowRejected.getCell(1).value).toBe('Tender_Keyword_Scanner_Assignment.pdf');
+      expect(rowRejected.getCell(2).value).toBe('NON_TENDER');
+      expect(rowRejected.getCell(3).value).toBe('Rejected (Non-Tender)');
+      expect(rowRejected.getCell(4).value).toContain('Internship evaluation');
+    });
   });
 });

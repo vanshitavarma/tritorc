@@ -167,6 +167,36 @@ describe('CSV Report Generation & RFC 4180 Compliance', () => {
       expect(dataRow[14]).toContain('flange alignment');
       expect(dataRow[14]).toContain('\nIncludes high-pressure');
     });
+
+    it('excludes rejected non-tenders from CSV rows', () => {
+      const mixed = [
+        {
+          documentName: 'valid.pdf',
+          status: 'scanned',
+          documentType: 'TENDER',
+          isValidTender: true,
+          matches: [],
+          distinctCount: 0,
+          relevance: 'Not Related',
+          tenderFields: { 'Tender No': 'TND-001' },
+        },
+        {
+          documentName: 'assignment.pdf',
+          status: 'rejected',
+          documentType: 'NON_TENDER',
+          isValidTender: false,
+          matches: [],
+          distinctCount: 0,
+          relevance: 'Not Assessed',
+          tenderFields: {},
+        },
+      ];
+
+      const buffer = buildCsvReport(mixed);
+      const rows = parseRfc4180Csv(buffer.toString('utf-8'));
+      expect(rows).toHaveLength(2); // 1 header + 1 valid tender row (assignment excluded)
+      expect(rows[1][0]).toBe('valid.pdf');
+    });
   });
 
   describe('Integration with 3 GeM PDFs', () => {

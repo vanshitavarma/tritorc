@@ -3,6 +3,7 @@ import { scanText } from '../matching/scanText.js';
 import { classifyRelevance } from '../relevance/classifyRelevance.js';
 import { extractTenderFields } from '../tender/extractTenderFields.js';
 import { summarizeTenderFields } from '../tender/summarizeTenderFields.js';
+import { classifyDocumentType, DOCUMENT_TYPES } from '../classification/documentClassifier.js';
 import { loadKeywords } from '../../config/keywords.js';
 import { logger } from '../../utils/logger.js';
 
@@ -18,6 +19,40 @@ export const scanSingleDocument = async (file, keywords) => {
       mimeType: file.mimetype,
     });
 
+    // 1. Classify document type BEFORE keyword matching and metadata extraction
+    const classification = await classifyDocumentType(extracted.text, {
+      originalName: originalFileName,
+      mimeType: file.mimetype,
+    });
+
+    // 2. Reject non-tender / invalid documents immediately
+    if (!classification.isValidTender) {
+      logger.info(
+        `Document "${originalFileName}" excluded from tender scanning (${classification.documentType}): ${classification.rejectionReason || classification.message}`
+      );
+      return {
+        documentName: originalFileName,
+        originalFileName,
+        fileName: originalFileName,
+        documentType: classification.documentType,
+        isValidTender: false,
+        confidence: classification.confidence,
+        status: classification.status, // 'rejected' or 'review_needed'
+        message: classification.message,
+        rejectionReason: classification.rejectionReason,
+        reasons: classification.reasons,
+        matches: [],
+        distinctCount: 0,
+        totalHits: 0,
+        relevance: 'Not Assessed',
+        tenderFields: {},
+        aiAnalysis: null,
+        evidence: null,
+        metadata: extracted.metadata,
+      };
+    }
+
+    // 3. Document is verified as TENDER, SCOPE_OF_WORK, or PROCUREMENT_DOCUMENT
     const scan = scanText(extracted.text, keywords);
     const relevance = classifyRelevance(scan);
     const rawTenderFields = extractTenderFields(extracted.text);
@@ -38,6 +73,11 @@ export const scanSingleDocument = async (file, keywords) => {
     return {
       documentName: summaryResult.intelligentDocumentName,
       originalFileName,
+      fileName: originalFileName,
+      documentType: classification.documentType,
+      isValidTender: true,
+      confidence: classification.confidence,
+      classificationReasons: classification.reasons,
       status: 'scanned',
       matches: scan.matches,
       distinctCount: scan.distinctCount,
@@ -53,6 +93,9 @@ export const scanSingleDocument = async (file, keywords) => {
     return {
       documentName: originalFileName,
       originalFileName,
+      fileName: originalFileName,
+      documentType: DOCUMENT_TYPES.UNKNOWN,
+      isValidTender: false,
       status: 'failed',
       error: error.message,
       matches: [],
@@ -87,6 +130,9 @@ export const scanDocuments = async (files = [], customKeywords = null) => {
     return {
       documentName: originalFileName,
       originalFileName,
+      fileName: originalFileName,
+      documentType: DOCUMENT_TYPES.UNKNOWN,
+      isValidTender: false,
       status: 'failed',
       error: result.reason?.message || 'Processing error',
       matches: [],

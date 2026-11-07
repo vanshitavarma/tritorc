@@ -49,6 +49,8 @@ export const createScan = async (req, res, next) => {
 
     const successful = results.filter((r) => r.status === 'scanned').length;
     const failed = results.filter((r) => r.status === 'failed').length;
+    const rejected = results.filter((r) => r.status === 'rejected').length;
+    const reviewNeeded = results.filter((r) => r.status === 'review_needed').length;
 
     res.status(201).json({
       success: true,
@@ -63,6 +65,8 @@ export const createScan = async (req, res, next) => {
           total: results.length,
           successful,
           failed,
+          ...(rejected > 0 ? { rejected } : {}),
+          ...(reviewNeeded > 0 ? { reviewNeeded } : {}),
         },
         reportUrl: `/api/scans/${scanId}/report`,
         csvReportUrl: `/api/scans/${scanId}/csv`,

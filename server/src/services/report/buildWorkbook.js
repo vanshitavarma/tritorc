@@ -128,7 +128,15 @@ const buildPrimaryWorksheet = (workbook, results) => {
     cell.alignment = HEADER_STYLE.alignment;
   });
 
-  results.forEach((doc, rowIdx) => {
+  const validResults = results.filter(
+    (doc) =>
+      doc.isValidTender !== false &&
+      doc.status !== 'rejected' &&
+      doc.status !== 'review_needed' &&
+      doc.documentType !== 'NON_TENDER'
+  );
+
+  validResults.forEach((doc, rowIdx) => {
     const rowValues = buildPrimaryRowValues(doc);
     const row = sheet.addRow(rowValues);
     const isOdd = rowIdx % 2 === 1;
@@ -201,7 +209,15 @@ const buildBreakdownWorksheet = (workbook, results) => {
     cell.alignment = HEADER_STYLE.alignment;
   });
 
-  results.forEach((doc) => {
+  const validResults = results.filter(
+    (doc) =>
+      doc.isValidTender !== false &&
+      doc.status !== 'rejected' &&
+      doc.status !== 'review_needed' &&
+      doc.documentType !== 'NON_TENDER'
+  );
+
+  validResults.forEach((doc) => {
     const docName = doc.documentName || doc.originalName || 'document';
     const isFailed = doc.status === 'failed';
     const matches = doc.matches || [];
@@ -287,7 +303,15 @@ const buildAiInsightsWorksheet = (workbook, results) => {
     cell.alignment = HEADER_STYLE.alignment;
   });
 
-  results.forEach((doc, rowIdx) => {
+  const validResults = results.filter(
+    (doc) =>
+      doc.isValidTender !== false &&
+      doc.status !== 'rejected' &&
+      doc.status !== 'review_needed' &&
+      doc.documentType !== 'NON_TENDER'
+  );
+
+  validResults.forEach((doc, rowIdx) => {
     const docName = doc.documentName || doc.originalName || 'document';
     const isFailed = doc.status === 'failed';
     const baseline = doc.relevance || doc.verdict || (isFailed ? 'Not Assessed' : 'Not Related');
@@ -329,16 +353,129 @@ const buildAiInsightsWorksheet = (workbook, results) => {
 };
 
 /**
+ * Builds the "Processing Summary" worksheet documenting classification status and rejection reasons.
+ */
+export const buildProcessingSummaryWorksheet = (workbook, results) => {
+  const sheet = workbook.addWorksheet('Processing Summary', {
+    views: [
+      {
+        state: 'frozen',
+        xSplit: 0,
+        ySplit: 1,
+        topLeftCell: 'A2',
+        activeCell: 'A1',
+      },
+    ],
+  });
+
+  sheet.autoFilter = 'A1:D1';
+  sheet.pageSetup = {
+    orientation: 'landscape',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+  };
+
+  const columns = [
+    { header: 'Original Filename', width: 36 },
+    { header: 'Document Type', width: 24 },
+    { header: 'Processing Status', width: 22 },
+    { header: 'Rejection / Review Reason', width: 56 },
+  ];
+
+  sheet.columns = columns.map((col, idx) => ({
+    header: col.header,
+    key: `summary_col_${idx + 1}`,
+    width: col.width,
+  }));
+
+  const headerRow = sheet.getRow(1);
+  headerRow.height = 28;
+  headerRow.eachCell({ includeEmpty: true }, (cell) => {
+    cell.font = HEADER_STYLE.font;
+    cell.fill = HEADER_STYLE.fill;
+    cell.alignment = HEADER_STYLE.alignment;
+  });
+
+  results.forEach((doc, rowIdx) => {
+    const fileName = doc.originalFileName || doc.fileName || doc.documentName || 'document';
+    const docType = doc.documentType || (doc.status === 'scanned' ? 'TENDER' : 'UNKNOWN');
+    let statusText = 'Accepted (Scanned)';
+    if (doc.status === 'rejected' || docType === 'NON_TENDER') {
+      statusText = 'Rejected (Non-Tender)';
+    } else if (doc.status === 'review_needed' || docType === 'UNKNOWN') {
+      statusText = 'Needs Manual Review';
+    } else if (doc.status === 'failed') {
+      statusText = 'Extraction Failed';
+    }
+
+    const reason =
+      doc.rejectionReason ||
+      doc.message ||
+      (doc.reasons && doc.reasons.length > 0 ? doc.reasons.join('; ') : '') ||
+      (doc.status === 'scanned' ? 'Verified procurement/tender document' : NOT_FOUND);
+
+    const row = sheet.addRow([fileName, docType, statusText, reason]);
+    const isOdd = rowIdx % 2 === 1;
+
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      cell.font = DATA_STYLE.font;
+      cell.alignment = DATA_STYLE.alignment;
+      cell.border = THIN_BORDER;
+
+      if (isOdd) {
+        cell.fill = ZEBRA_FILL;
+      }
+
+      // Highlight status column
+      if (colNumber === 3) {
+        if (statusText.includes('Rejected')) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFBE4E4' }, // Soft red
+          };
+          cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF9B1C1C' } };
+        } else if (statusText.includes('Review')) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFDEBD3' }, // Soft amber
+          };
+          cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF8E4B10' } };
+        } else if (statusText.includes('Accepted')) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD9F2D9' }, // Soft green
+          };
+          cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF1E4620' } };
+        }
+      }
+    });
+  });
+
+  return sheet;
+};
+
+/**
  * Generates an executive Excel workbook matching the 24-column corporate reference report.
  *
  * @param {Array<Object>} results - Document scan results
  * @param {Object} [options]
  * @param {boolean} [options.includeBreakdown=true]
  * @param {boolean} [options.includeAiInsights=true]
+ * @param {boolean} [options.includeProcessingSummary=true]
  * @returns {Promise<Buffer>}
  */
 export const buildWorkbook = async (results = [], options = {}) => {
-  const { includeBreakdown = true, includeAiInsights = true } = options;
+  const {
+    includeBreakdown = true,
+    includeAiInsights = true,
+    includeProcessingSummary = options.includeProcessingSummary !== undefined
+      ? options.includeProcessingSummary
+      : includeBreakdown && includeAiInsights,
+  } = options;
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Tritorc Tender Scanner';
@@ -353,6 +490,10 @@ export const buildWorkbook = async (results = [], options = {}) => {
 
   if (includeAiInsights) {
     buildAiInsightsWorksheet(workbook, results);
+  }
+
+  if (includeProcessingSummary) {
+    buildProcessingSummaryWorksheet(workbook, results);
   }
 
   const buffer = await workbook.xlsx.writeBuffer();

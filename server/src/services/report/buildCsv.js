@@ -43,9 +43,17 @@ export const serializeCsvRow = (rowValues) => {
  * @returns {Buffer} - UTF-8 encoded Buffer with BOM
  */
 export const buildCsvReport = (results = []) => {
+  const validResults = results.filter(
+    (doc) =>
+      doc.isValidTender !== false &&
+      doc.status !== 'rejected' &&
+      doc.status !== 'review_needed' &&
+      doc.documentType !== 'NON_TENDER'
+  );
+
   const headerRow = serializeCsvRow(REPORT_COLUMNS);
 
-  const dataRows = results.map((doc) => {
+  const dataRows = validResults.map((doc) => {
     const rowValues = buildPrimaryRowValues(doc);
     return serializeCsvRow(rowValues);
   });

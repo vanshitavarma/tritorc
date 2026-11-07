@@ -122,6 +122,44 @@ describe('Scan REST API Integration Tests', () => {
       expect(bhel.relevance).toBe('Not Related');
     });
 
+    it('accurately isolates invalid assignment in a mixed batch while processing two valid tenders', async () => {
+      const sailPath = path.join(fixturesDir, 'GeM-Bidding-9649647.pdf');
+      const opgcPath = path.join(fixturesDir, 'GeM-Bidding-9563430.pdf');
+      const assignmentPath = path.join(fixturesDir, 'Tender_Keyword_Scanner_Assignment.pdf');
+
+      const res = await request(app)
+        .post('/api/scans')
+        .attach('files', sailPath)
+        .attach('files', opgcPath)
+        .attach('files', assignmentPath);
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.summary.total).toBe(3);
+      expect(res.body.data.summary.successful).toBe(2);
+      expect(res.body.data.summary.rejected).toBe(1);
+
+      const sail = res.body.data.results.find((r) => r.originalFileName.includes('9649647'));
+      const opgc = res.body.data.results.find((r) => r.originalFileName.includes('9563430'));
+      const assignment = res.body.data.results.find((r) =>
+        r.originalFileName.includes('Assignment')
+      );
+
+      expect(sail.isValidTender).toBe(true);
+      expect(sail.status).toBe('scanned');
+      expect(sail.relevance).toBe('Related');
+
+      expect(opgc.isValidTender).toBe(true);
+      expect(opgc.status).toBe('scanned');
+
+      expect(assignment.isValidTender).toBe(false);
+      expect(assignment.documentType).toBe('NON_TENDER');
+      expect(assignment.status).toBe('rejected');
+      expect(assignment.rejectionReason).toBeDefined();
+      expect(assignment.matches).toHaveLength(0);
+      expect(assignment.distinctCount).toBe(0);
+    });
+
     it('isolates corrupt file failure without failing the entire batch', async () => {
       const validDocx = path.join(fixturesDir, 'civil_works.docx');
       const corruptPdfBuffer = Buffer.from('%PDF-1.4\ncorrupted content that fails parsing');
