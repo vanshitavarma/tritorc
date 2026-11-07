@@ -7,7 +7,14 @@ let activeServer = null;
 
 export const startServer = async () => {
   try {
-    await connectDatabase();
+    try {
+      await connectDatabase();
+    } catch (dbError) {
+      logger.warn(
+        `MongoDB connection unavailable: ${dbError.message}. Deterministic scanner remains fully operational with in-memory store.`
+      );
+    }
+
     activeServer = app.listen(env.port, () => {
       logger.info(`Server listening on port ${env.port}`);
     });

@@ -1,6 +1,7 @@
 import { scanDocuments } from '../services/scan/scanDocuments.js';
 import { scanStore } from '../services/scan/scanStore.js';
 import { buildWorkbook } from '../services/report/buildWorkbook.js';
+import { buildCsvReport } from '../services/report/buildCsv.js';
 import { loadKeywords } from '../config/keywords.js';
 import { AppError } from '../utils/AppError.js';
 
@@ -34,6 +35,8 @@ export const createScan = async (req, res, next) => {
     const scannedAt = new Date().toISOString();
 
     const reportBuffer = await buildWorkbook(results);
+    const csvBuffer = buildCsvReport(results);
+
     scanStore.saveScan(scanId, {
       scanId,
       scannedAt,
@@ -41,6 +44,7 @@ export const createScan = async (req, res, next) => {
       results,
     });
     scanStore.saveReport(scanId, reportBuffer);
+    scanStore.saveCsvReport(scanId, csvBuffer);
 
     res.status(201).json({
       status: 'success',
@@ -50,6 +54,7 @@ export const createScan = async (req, res, next) => {
         totalFiles: req.files.length,
         results,
         reportUrl: `/api/scans/${scanId}/report`,
+        csvReportUrl: `/api/scans/${scanId}/csv`,
       },
     });
   } catch (error) {
@@ -75,9 +80,20 @@ export const getScanById = async (req, res, next) => {
 
 export const downloadReport = async (req, res, next) => {
   try {
-    const reportBuffer = scanStore.getReport(req.params.id);
+    if (req.query.format === 'csv') {
+      return downloadCsvReport(req, res, next);
+    }
+
+    let reportBuffer = scanStore.getReport(req.params.id);
     if (!reportBuffer) {
-      throw new AppError('Report not found or expired.', 404, 'NOT_FOUND');
+      // If scan exists but report buffer wasn't cached, generate it on demand
+      const scan = scanStore.getScan(req.params.id);
+      if (scan && scan.results) {
+        reportBuffer = await buildWorkbook(scan.results);
+        scanStore.saveReport(req.params.id, reportBuffer);
+      } else {
+        throw new AppError('Report not found or expired.', 404, 'NOT_FOUND');
+      }
     }
 
     const filename = `Tritorc_Tender_Scan_Report_${req.params.id.slice(0, 8)}.xlsx`;
@@ -90,6 +106,32 @@ export const downloadReport = async (req, res, next) => {
     res.setHeader('Content-Length', reportBuffer.length);
 
     res.status(200).send(reportBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const downloadCsvReport = async (req, res, next) => {
+  try {
+    let csvBuffer = scanStore.getCsvReport(req.params.id);
+    if (!csvBuffer) {
+      const scan = scanStore.getScan(req.params.id);
+      if (scan && scan.results) {
+        csvBuffer = buildCsvReport(scan.results);
+        scanStore.saveCsvReport(req.params.id, csvBuffer);
+      } else {
+        throw new AppError('CSV report not found or expired.', 404, 'NOT_FOUND');
+      }
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const filename = `TenderIQ_Scan_Report_${today}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', csvBuffer.length);
+
+    res.status(200).send(csvBuffer);
   } catch (error) {
     next(error);
   }

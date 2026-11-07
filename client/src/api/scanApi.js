@@ -38,3 +38,7 @@ export async function fetchScan(scanId) {
 export function getDownloadReportUrl(scanId) {
   return `/api/scans/${scanId}/report`;
 }
+
+export function getDownloadCsvUrl(scanId) {
+  return `/api/scans/${scanId}/csv`;
+}

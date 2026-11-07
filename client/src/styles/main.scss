@@ -461,27 +461,48 @@ body {
     gap: 1rem;
   }
 
-  .btn-download-report {
-    display: inline-flex;
+  .download-buttons-group {
+    display: flex;
     align-items: center;
-    gap: 0.5rem;
-    background: #15803d;
-    color: #ffffff;
-    padding: 0.75rem 1.5rem;
-    border-radius: $radius-md;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.95rem;
-    box-shadow: $shadow-sm;
-    transition: background 0.15s ease;
+    gap: 0.75rem;
+    flex-wrap: wrap;
 
-    &:hover {
-      background: #166534;
-    }
+    .btn-download-report {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: $radius-md;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.88rem;
+      box-shadow: $shadow-sm;
+      transition: all 0.15s ease;
 
-    .icon-download {
-      width: 20px;
-      height: 20px;
+      &.btn-download-csv {
+        background: $color-navy;
+        color: #ffffff;
+        border: 1px solid $color-navy-dark;
+
+        &:hover {
+          background: $color-navy-dark;
+        }
+      }
+
+      &.btn-download-xlsx {
+        background: #15803d;
+        color: #ffffff;
+        border: 1px solid #166534;
+
+        &:hover {
+          background: #166534;
+        }
+      }
+
+      .icon-download {
+        width: 18px;
+        height: 18px;
+      }
     }
   }
 }

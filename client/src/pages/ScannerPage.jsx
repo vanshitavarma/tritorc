@@ -95,7 +95,11 @@ export default function ScannerPage() {
           <div className="results-section">
             <div className="results-toolbar">
               <StatusBanner results={scanResult.results} />
-              <DownloadReportButton reportUrl={scanResult.reportUrl} scanId={scanResult.scanId} />
+              <DownloadReportButton
+                reportUrl={scanResult.reportUrl}
+                csvReportUrl={scanResult.csvReportUrl}
+                scanId={scanResult.scanId}
+              />
             </div>
 
             <ResultsTable results={scanResult.results} onSelectDocument={setActiveDrawerDoc} />

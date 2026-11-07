@@ -6,6 +6,7 @@ class ScanStore {
   constructor() {
     this.scans = new Map();
     this.reports = new Map();
+    this.csvReports = new Map();
   }
 
   generateId() {
@@ -29,6 +30,7 @@ class ScanStore {
     if (Date.now() > record.expiresAt) {
       this.scans.delete(id);
       this.reports.delete(id);
+      this.csvReports.delete(id);
       return null;
     }
     return record;
@@ -51,9 +53,27 @@ class ScanStore {
     return record.buffer;
   }
 
+  saveCsvReport(id, buffer) {
+    this.csvReports.set(id, {
+      buffer,
+      expiresAt: Date.now() + ONE_HOUR_MS,
+    });
+  }
+
+  getCsvReport(id) {
+    const record = this.csvReports.get(id);
+    if (!record) return null;
+    if (Date.now() > record.expiresAt) {
+      this.csvReports.delete(id);
+      return null;
+    }
+    return record.buffer;
+  }
+
   clear() {
     this.scans.clear();
     this.reports.clear();
+    this.csvReports.clear();
   }
 }
 
