@@ -1,0 +1,50 @@
+// Brand colors
+$color-navy: #1e3a5f;
+$color-navy-dark: #0f1f33;
+$color-navy-light: #2c5282;
+$color-blue-bg: #f0f5fa;
+
+// Verdict badge colors (matching sample Excel fill palettes)
+$verdict-related-bg: #d9f2d9;
+$verdict-related-text: #176625;
+$verdict-related-border: #b8e6b8;
+
+$verdict-possible-bg: #fdebd3;
+$verdict-possible-text: #964d00;
+$verdict-possible-border: #f8d5a8;
+
+$verdict-not-related-bg: #f2f2f2;
+$verdict-not-related-text: #595959;
+$verdict-not-related-border: #dcdcdc;
+
+$verdict-failed-bg: #fbe4e4;
+$verdict-failed-text: #9c1c1c;
+$verdict-failed-border: #f4c2c2;
+
+// Neutrals
+$color-bg: #f7f9fa;
+$color-surface: #ffffff;
+$color-text-main: #1f2937;
+$color-text-muted: #6b7280;
+$color-border: #e5e7eb;
+$color-border-dark: #cbd5e1;
+
+// Shadows
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md:
+  0 4px 6px -1px rgba(0, 0, 0, 0.1),
+  0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg:
+  0 10px 15px -3px rgba(0, 0, 0, 0.1),
+  0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+// Radii
+$radius-sm: 6px;
+$radius-md: 8px;
+$radius-lg: 12px;
+
+// Breakpoints
+$bp-mobile: 480px;
+$bp-tablet: 768px;
+$bp-desktop: 1024px;
+$bp-wide: 1280px;
