@@ -36,7 +36,7 @@ export default function TenderDetailsDrawer({ document, onClose, onOpenChat }) {
                   onOpenChat(document);
                 }}
               >
-                💬 Open Chat
+                Open Chat
               </button>
             )}
             <button type="button" className="btn-close-drawer" onClick={onClose}>

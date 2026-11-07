@@ -10,6 +10,7 @@
     "format": "prettier --check \"src/**/*.{js,jsx,scss}\""
   },
   "dependencies": {
+    "marked": "^18.1.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

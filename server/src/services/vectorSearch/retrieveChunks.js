@@ -5,20 +5,6 @@ import { getDatabaseStatus } from '../../config/database.js';
 import { env } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 
-/**
- * In-memory LRU-style cache for query embeddings to avoid repeating expensive API calls
- * when the same question is asked repeatedly in a session.
- */
-const queryEmbeddingCache = new Map();
-const MAX_QUERY_CACHE_SIZE = 100;
-
-export const clearQueryEmbeddingCache = () => {
-  queryEmbeddingCache.clear();
-};
-
-/**
- * Custom Error Class for Vector Search Operations.
- */
 export class VectorSearchError extends Error {
   constructor(message, { code = 'VECTOR_SEARCH_ERROR', status = 500, details = null } = {}) {
     super(message);
@@ -29,12 +15,21 @@ export class VectorSearchError extends Error {
   }
 }
 
+// In-memory query embedding cache (LRU capped at 100 entries)
+const queryEmbeddingCache = new Map();
+const MAX_QUERY_CACHE_SIZE = 100;
+
+export const clearQueryCache = () => {
+  queryEmbeddingCache.clear();
+};
+export const clearQueryEmbeddingCache = clearQueryCache;
+
 /**
- * Helper to calculate Jaccard word-overlap similarity between two text snippets for deduplication.
+ * Calculates token-level Jaccard similarity between two text passages.
  *
  * @param {string} a
  * @param {string} b
- * @returns {number} Value between 0.0 and 1.0
+ * @returns {number} Float 0.0 to 1.0
  */
 export const calculateTextOverlap = (a = '', b = '') => {
   if (!a || !b) return 0;
@@ -42,21 +37,21 @@ export const calculateTextOverlap = (a = '', b = '') => {
     a
       .toLowerCase()
       .split(/\s+/)
-      .filter((w) => w.length > 2)
+      .filter((w) => w.length > 3)
   );
   const setB = new Set(
     b
       .toLowerCase()
       .split(/\s+/)
-      .filter((w) => w.length > 2)
+      .filter((w) => w.length > 3)
   );
   if (setA.size === 0 || setB.size === 0) return 0;
 
   let intersection = 0;
-  for (const word of setA) {
-    if (setB.has(word)) intersection++;
+  for (const item of setA) {
+    if (setB.has(item)) intersection++;
   }
-  const union = new Set([...setA, ...setB]).size;
+  const union = setA.size + setB.size - intersection;
   return union > 0 ? intersection / union : 0;
 };
 
@@ -98,18 +93,94 @@ export const deduplicateChunks = (candidates = [], overlapThreshold = 0.7) => {
 };
 
 /**
+ * Lexical keyword retrieval across DocumentChunk collection for an individual document.
+ * Provides resilient exact matching for specific terms, numbers, codes, and fallbacks.
+ *
+ * @param {string} docId - Canonical document ID
+ * @param {string} query - Clean user query
+ * @param {number} [limit=10] - Maximum lexical passages to return
+ * @returns {Promise<Array<Object>>} Scored chunk objects
+ */
+export const searchChunksLexically = async (docId, query, limit = 10) => {
+  const dbStatus = getDatabaseStatus();
+  if (!dbStatus.isReady) return [];
+
+  const stopwords = new Set([
+    'what', 'is', 'the', 'are', 'of', 'in', 'to', 'for', 'a', 'an', 'on', 'with', 'at', 'by',
+    'from', 'do', 'does', 'did', 'any', 'this', 'that', 'these', 'those', 'please', 'tell', 'me',
+    'which', 'how', 'much', 'many', 'who', 'where', 'when', 'should', 'could', 'would', 'have', 'has', 'had',
+  ]);
+
+  const tokens = query
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, ' ')
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2 && !stopwords.has(t));
+
+  const chunks = await DocumentChunk.find({ documentId: docId })
+    .select('_id documentId scanId chunkIndex text provenance section contentHash')
+    .lean();
+
+  if (!chunks || chunks.length === 0) return [];
+
+  if (tokens.length === 0) {
+    return chunks.slice(0, limit).map((c, idx) => ({ ...c, score: 0.5 - idx * 0.05 }));
+  }
+
+  const scored = [];
+  const lowerQuery = query.toLowerCase();
+
+  for (const chunk of chunks) {
+    const textLower = (chunk.text || '').toLowerCase();
+    const sectionLower = (chunk.section || '').toLowerCase();
+    let score = 0;
+
+    // Exact query phrase bonus
+    if (textLower.includes(lowerQuery)) {
+      score += 0.75;
+    }
+
+    // Individual token matches
+    let matchedTokens = 0;
+    for (const token of tokens) {
+      if (textLower.includes(token)) {
+        matchedTokens++;
+        const safeRegex = new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        const count = (textLower.match(safeRegex) || []).length;
+        score += Math.min(count, 3) * 0.12;
+      }
+      if (sectionLower.includes(token)) {
+        score += 0.2;
+      }
+    }
+
+    if (matchedTokens > 0 || score > 0) {
+      const matchRatio = matchedTokens / tokens.length;
+      score += matchRatio * 0.45;
+      scored.push({
+        ...chunk,
+        score: Math.min(0.99, Number(score.toFixed(4))),
+      });
+    }
+  }
+
+  return scored.sort((a, b) => b.score - a.score).slice(0, limit);
+};
+
+/**
  * Executes semantic vector retrieval using MongoDB Atlas Vector Search ($vectorSearch).
  * Enforces strict tender document isolation so queries against Document A NEVER return passages from Document B.
  *
  * @param {Object} params
- * @param {string} params.documentId - Selected tender document ID (MANDATORY for strict isolation)
+ * @param {string} params.documentId - Selected tender document ID
  * @param {string} [params.scanId] - Optional scan session reference
  * @param {string} params.query - User question or search phrase
  * @param {number} [params.topK=5] - Number of top passages to return (default 5, max 10)
- * @param {number} [params.minScore=0.60] - Minimum cosine similarity threshold
+ * @param {number} [params.minScore=0.60] - Minimum similarity threshold
  * @param {import('../embedding/EmbeddingProvider.js').EmbeddingProvider} [params.provider] - Injected embedding provider
  * @param {string} [params.vectorIndexName] - Override Atlas Vector Search index name
- * @returns {Promise<{ query: string, documentId: string, scanId?: string, originalFileName: string, totalRetrieved: number, passages: Array<Object> }>}
+ * @returns {Promise<{ query: string, documentId: string, scanId?: string, originalFileName: string, tenderFields: Object, totalRetrieved: number, passages: Array<Object> }>}
  */
 export const retrieveChunks = async ({
   documentId,
@@ -149,8 +220,13 @@ export const retrieveChunks = async ({
     );
   }
 
-  // 4. Validate that the selected document exists in MongoDB
-  const tenderDoc = await TenderDocument.findOne({ documentId: cleanDocId }).lean();
+  // 4. Validate that the selected document exists in MongoDB (resilient to ID or filename)
+  let tenderDoc = await TenderDocument.findOne({ documentId: cleanDocId }).lean();
+  if (!tenderDoc) {
+    tenderDoc = await TenderDocument.findOne({
+      $or: [{ originalFileName: cleanDocId }, { documentName: cleanDocId }],
+    }).lean();
+  }
   if (!tenderDoc) {
     throw new VectorSearchError(`Tender document with ID "${cleanDocId}" was not found`, {
       code: 'DOCUMENT_NOT_FOUND',
@@ -158,6 +234,7 @@ export const retrieveChunks = async ({
     });
   }
 
+  const canonicalDocId = tenderDoc.documentId;
   const resolvedScanId = scanId || tenderDoc.scanId;
   const originalFileName = tenderDoc.originalFileName || tenderDoc.documentName || 'tender';
 
@@ -177,7 +254,6 @@ export const retrieveChunks = async ({
       const embedResult = await activeProvider.embedQuery(cleanQuery);
       queryVector = embedResult.vector;
 
-      // Update cache
       if (queryEmbeddingCache.size >= MAX_QUERY_CACHE_SIZE) {
         const oldestKey = queryEmbeddingCache.keys().next().value;
         queryEmbeddingCache.delete(oldestKey);
@@ -200,9 +276,8 @@ export const retrieveChunks = async ({
   }
 
   // 8. Execute MongoDB Atlas Vector Search Aggregation Pipeline
-  // Enforces documentId filter inside the Atlas Vector Search engine
   const filterClause = {
-    documentId: { $eq: cleanDocId },
+    documentId: { $eq: canonicalDocId },
   };
   if (resolvedScanId) {
     filterClause.scanId = { $eq: resolvedScanId };
@@ -215,7 +290,7 @@ export const retrieveChunks = async ({
         path: 'embedding',
         queryVector,
         numCandidates: Math.max(boundedTopK * 10, 50),
-        limit: Math.max(boundedTopK * 3, 15), // Fetch extra candidates for deduplication & minScore filtering
+        limit: Math.max(boundedTopK * 3, 15),
         filter: filterClause,
       },
     },
@@ -259,10 +334,10 @@ export const retrieveChunks = async ({
   }
 
   // 9. Strict Quality Controls:
-  // - Ensure every candidate strictly belongs to cleanDocId (defense in depth)
+  // - Ensure every candidate strictly belongs to canonicalDocId (defense in depth)
   // - Filter by minimum similarity score
   const qualifiedCandidates = (rawResults || [])
-    .filter((chunk) => chunk.documentId === cleanDocId)
+    .filter((chunk) => chunk.documentId === canonicalDocId)
     .filter((chunk) => typeof chunk.score === 'number' && chunk.score >= activeMinScore)
     .sort((a, b) => b.score - a.score);
 
@@ -276,7 +351,7 @@ export const retrieveChunks = async ({
     documentId: p.documentId,
     scanId: p.scanId,
     originalFileName,
-    text: p.text, // Verbatim source text
+    text: p.text,
     pageStart: p.provenance?.pageStart || 1,
     pageEnd: p.provenance?.pageEnd || p.provenance?.pageStart || 1,
     paragraphStart: p.provenance?.paragraphStart || null,
@@ -287,14 +362,15 @@ export const retrieveChunks = async ({
 
   const latencyMs = Date.now() - startTime;
   logger.info(
-    `Vector search for doc "${cleanDocId}" query "${cleanQuery.slice(0, 40)}" returned ${formattedPassages.length} passages (${latencyMs}ms, minScore=${activeMinScore})`
+    `Vector search for doc "${canonicalDocId}" query "${cleanQuery.slice(0, 40)}" returned ${formattedPassages.length} passages (${latencyMs}ms, minScore=${activeMinScore})`
   );
 
   return {
     query: cleanQuery,
-    documentId: cleanDocId,
+    documentId: canonicalDocId,
     scanId: resolvedScanId,
     originalFileName,
+    tenderFields: tenderDoc.tenderFields,
     totalRetrieved: formattedPassages.length,
     passages: formattedPassages,
   };

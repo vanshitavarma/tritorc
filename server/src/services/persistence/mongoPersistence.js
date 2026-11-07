@@ -7,6 +7,7 @@ import { TenderDocument } from '../../models/TenderDocument.js';
 import { DocumentChunk } from '../../models/DocumentChunk.js';
 import { AIAnalysis } from '../../models/AIAnalysis.js';
 import { chunkDocumentText, computeContentHash } from '../chunking/textChunker.js';
+import { embedDocumentChunks } from '../embedding/embedChunksService.js';
 
 /**
  * Persists an entire scan session including scan metadata, tender documents, chunks, and AI analyses.
@@ -83,6 +84,7 @@ export const persistScanSession = async (sessionData = {}) => {
     // 2. Persist each TenderDocument, its text chunks, and AI analysis
     for (const doc of results) {
       const documentId = doc.documentId || randomUUID();
+      doc.documentId = documentId;
       const originalFileName =
         doc.originalFileName || doc.fileName || doc.documentName || 'document';
       const documentName = doc.documentName || originalFileName;
@@ -181,6 +183,13 @@ export const persistScanSession = async (sessionData = {}) => {
 
           await DocumentChunk.bulkWrite(bulkOps);
           totalChunksSaved += chunks.length;
+
+          // Asynchronously generate embeddings for this document's chunks in the background
+          embedDocumentChunks({ documentId, scanId }).catch((embedErr) => {
+            logger.warn(
+              `Background embedding generation for document "${documentId}" failed: ${embedErr.message}`
+            );
+          });
         }
       }
 

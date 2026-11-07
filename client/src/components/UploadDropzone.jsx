@@ -61,26 +61,28 @@ export default function UploadDropzone({ onFilesSelected, disabled = false }) {
         style={{ display: 'none' }}
       />
       <div className="dropzone-content">
-        <svg
-          className="upload-icon"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-          />
-        </svg>
+        <div className="upload-icon-wrap">
+          <svg
+            className="upload-icon"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+            />
+          </svg>
+        </div>
         <div className="dropzone-text">
           <p className="main-prompt">
             <strong>Click to upload</strong> or drag and drop tenders
           </p>
           <p className="sub-prompt">
-            PDF and DOCX tender documents (Max 10 files, up to 10MB each)
+            Supports PDF &amp; DOCX procurement files (up to 10MB each)
           </p>
         </div>
       </div>

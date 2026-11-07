@@ -23,7 +23,9 @@ export const getDocumentById = async (req, res, next) => {
     const dbStatus = getDatabaseStatus();
     if (dbStatus.isReady) {
       try {
-        document = await TenderDocument.findOne({ documentId }).lean();
+        document = await TenderDocument.findOne({
+          $or: [{ documentId }, { originalFileName: documentId }, { documentName: documentId }],
+        }).lean();
       } catch (err) {
         logger.warn(`Database lookup for document ${documentId} failed: ${err.message}`);
       }
@@ -34,7 +36,10 @@ export const getDocumentById = async (req, res, next) => {
       const allScans = scanStore.getAllScans ? scanStore.getAllScans() : [];
       for (const scan of allScans) {
         const found = scan.results?.find(
-          (r) => r.documentId === documentId || r.documentName === documentId
+          (r) =>
+            r.documentId === documentId ||
+            r.documentName === documentId ||
+            r.originalFileName === documentId
         );
         if (found) {
           document = {

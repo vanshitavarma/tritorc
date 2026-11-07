@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { extractText } from '../extraction/extractText.js';
 import { scanText } from '../matching/scanText.js';
 import { classifyRelevance } from '../relevance/classifyRelevance.js';
@@ -12,6 +13,7 @@ import { logger } from '../../utils/logger.js';
  */
 export const scanSingleDocument = async (file, keywords) => {
   const originalFileName = file.originalname || 'document';
+  const documentId = file.documentId || randomUUID();
   try {
     const extracted = await extractText({
       buffer: file.buffer,
@@ -31,6 +33,7 @@ export const scanSingleDocument = async (file, keywords) => {
         `Document "${originalFileName}" excluded from tender scanning (${classification.documentType}): ${classification.rejectionReason || classification.message}`
       );
       return {
+        documentId,
         documentName: originalFileName,
         originalFileName,
         fileName: originalFileName,
@@ -71,6 +74,7 @@ export const scanSingleDocument = async (file, keywords) => {
     };
 
     return {
+      documentId,
       documentName: summaryResult.intelligentDocumentName,
       originalFileName,
       fileName: originalFileName,
@@ -92,6 +96,7 @@ export const scanSingleDocument = async (file, keywords) => {
   } catch (error) {
     logger.warn(`Scan error for file "${originalFileName}": ${error.message}`);
     return {
+      documentId,
       documentName: originalFileName,
       originalFileName,
       fileName: originalFileName,
@@ -129,6 +134,7 @@ export const scanDocuments = async (files = [], customKeywords = null) => {
     }
     const originalFileName = files[idx]?.originalname || 'document';
     return {
+      documentId: randomUUID(),
       documentName: originalFileName,
       originalFileName,
       fileName: originalFileName,

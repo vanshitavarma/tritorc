@@ -14,7 +14,6 @@ export default function ScannerPage() {
     status,
     scanResult,
     error,
-    keywords,
     activeDrawerDoc,
     setActiveDrawerDoc,
     addFiles,
@@ -23,7 +22,6 @@ export default function ScannerPage() {
     startScan,
   } = useScan();
 
-  const [showKeywords, setShowKeywords] = useState(false);
   const [chatDoc, setChatDoc] = useState(null);
   const isScanning = status === 'uploading';
 
@@ -40,38 +38,13 @@ export default function ScannerPage() {
 
   return (
     <div className="scanner-page">
-      <div className="hero-section">
-        <h2>Tritorc Tender Intelligence &amp; RAG Copilot</h2>
-        <p className="hero-subtitle">
-          Upload PDF or DOCX procurement documents to match Tritorc bolting and flange management
-          keywords, run deep AI summarization, compute 100-point hybrid relevance scores, and chat
-          with individual tenders using grounded citations.
+      <div className="workspace-header">
+        <h2>Tender &amp; SOW Keyword Scanner</h2>
+        <p>
+          Upload procurement documents (.pdf, .docx) to evaluate technical relevance against
+          Tritorc bolting and flange management keywords, classify tender validity, and extract
+          metadata.
         </p>
-
-        <div className="keywords-pill-bar">
-          <button
-            type="button"
-            className="btn-keywords-pill"
-            onClick={() => setShowKeywords(!showKeywords)}
-          >
-            Configured Keywords ({keywords.length || 20}) {showKeywords ? '▲' : '▼'}
-          </button>
-        </div>
-
-        {showKeywords && (
-          <div className="keywords-dropdown">
-            <p className="keywords-hint">
-              Default 20 keywords from <code>server/data/keywords.csv</code>:
-            </p>
-            <div className="keywords-tag-list">
-              {keywords.map((kw, i) => (
-                <span key={`${kw}-${i}`} className="kw-tag">
-                  {kw}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="scanner-workflow">

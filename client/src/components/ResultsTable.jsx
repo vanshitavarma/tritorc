@@ -131,9 +131,12 @@ export default function ResultsTable({ results, onSelectDocument, onOpenChat }) 
                             type="button"
                             className="btn-chat-ai"
                             onClick={() => onOpenChat(doc)}
-                            title="Open interactive grounded tender copilot"
+                            title="Open grounded TenderIQ Copilot"
                           >
-                            💬 Chat
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            Ask Copilot
                           </button>
                         )}
                         <button
@@ -175,7 +178,7 @@ export default function ResultsTable({ results, onSelectDocument, onOpenChat }) 
                 >
                   <div className="card-top-row">
                     <span className="file-name-heading">
-                      📄 {doc.originalFileName || doc.documentName}
+                      {doc.originalFileName || doc.documentName}
                     </span>
                     <DocumentTypeBadge
                       documentType={doc.documentType}
@@ -184,7 +187,7 @@ export default function ResultsTable({ results, onSelectDocument, onOpenChat }) 
                   </div>
                   <div className="card-reason-box">
                     <strong className="reason-label">
-                      {isRejected ? '⛔ Rejection Reason:' : '⚠️ Manual Review Required:'}
+                      {isRejected ? 'Rejection Reason:' : 'Manual Review Required:'}
                     </strong>
                     <p className="reason-text">
                       {doc.rejectionReason || doc.message || 'Non-tender document identified.'}
