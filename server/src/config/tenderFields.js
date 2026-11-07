@@ -71,12 +71,190 @@ export const formatTabName = (rawText) => {
   return lines.join(', ');
 };
 
+const PIN_STATE_RANGES = [
+  { min: 110000, max: 119999, state: 'Delhi' },
+  { min: 120000, max: 139999, state: 'Haryana' },
+  { min: 140000, max: 159999, state: 'Punjab' },
+  { min: 160000, max: 169999, state: 'Chandigarh' },
+  { min: 170000, max: 179999, state: 'Himachal Pradesh' },
+  { min: 180000, max: 199999, state: 'Jammu and Kashmir' },
+  { min: 244000, max: 249999, state: 'Uttarakhand' },
+  { min: 262000, max: 263999, state: 'Uttarakhand' },
+  { min: 200000, max: 289999, state: 'Uttar Pradesh' },
+  { min: 300000, max: 349999, state: 'Rajasthan' },
+  { min: 360000, max: 399999, state: 'Gujarat' },
+  { min: 403000, max: 403999, state: 'Goa' },
+  { min: 400000, max: 449999, state: 'Maharashtra' },
+  { min: 490000, max: 497999, state: 'Chhattisgarh' },
+  { min: 450000, max: 489999, state: 'Madhya Pradesh' },
+  { min: 500000, max: 509999, state: 'Telangana' },
+  { min: 515000, max: 535999, state: 'Andhra Pradesh' },
+  { min: 560000, max: 599999, state: 'Karnataka' },
+  { min: 605000, max: 605999, state: 'Puducherry' },
+  { min: 600000, max: 649999, state: 'Tamil Nadu' },
+  { min: 670000, max: 699999, state: 'Kerala' },
+  { min: 737000, max: 737999, state: 'Sikkim' },
+  { min: 700000, max: 749999, state: 'West Bengal' },
+  { min: 750000, max: 779999, state: 'Odisha' },
+  { min: 780000, max: 789999, state: 'Assam' },
+  { min: 790000, max: 792999, state: 'Arunachal Pradesh' },
+  { min: 793000, max: 794999, state: 'Meghalaya' },
+  { min: 795000, max: 795999, state: 'Manipur' },
+  { min: 796000, max: 796999, state: 'Mizoram' },
+  { min: 797000, max: 798999, state: 'Nagaland' },
+  { min: 799000, max: 799999, state: 'Tripura' },
+  { min: 814000, max: 835999, state: 'Jharkhand' },
+  { min: 800000, max: 859999, state: 'Bihar' },
+];
+
+const KNOWN_CITY_STATES = {
+  banharpali: 'Odisha',
+  rourkela: 'Odisha',
+  jharsuguda: 'Odisha',
+  bhubaneswar: 'Odisha',
+  cuttack: 'Odisha',
+  angul: 'Odisha',
+  paradeep: 'Odisha',
+  sambalpur: 'Odisha',
+  damanjodi: 'Odisha',
+  ranipet: 'Tamil Nadu',
+  'indira gandhi complex': 'Tamil Nadu',
+  chennai: 'Tamil Nadu',
+  coimbatore: 'Tamil Nadu',
+  tiruchirappalli: 'Tamil Nadu',
+  trichy: 'Tamil Nadu',
+  salem: 'Tamil Nadu',
+  madurai: 'Tamil Nadu',
+  tuticorin: 'Tamil Nadu',
+  bhilai: 'Chhattisgarh',
+  raipur: 'Chhattisgarh',
+  korba: 'Chhattisgarh',
+  bilaspur: 'Chhattisgarh',
+  bokaro: 'Jharkhand',
+  jamshedpur: 'Jharkhand',
+  ranchi: 'Jharkhand',
+  dhanbad: 'Jharkhand',
+  durgapur: 'West Bengal',
+  asansol: 'West Bengal',
+  kolkata: 'West Bengal',
+  haldia: 'West Bengal',
+  haridwar: 'Uttarakhand',
+  dehradun: 'Uttarakhand',
+  bhopal: 'Madhya Pradesh',
+  indore: 'Madhya Pradesh',
+  gwalior: 'Madhya Pradesh',
+  jabalpur: 'Madhya Pradesh',
+  visakhapatnam: 'Andhra Pradesh',
+  vizag: 'Andhra Pradesh',
+  vijayawada: 'Andhra Pradesh',
+  hyderabad: 'Telangana',
+  secunderabad: 'Telangana',
+  bengaluru: 'Karnataka',
+  bangalore: 'Karnataka',
+  mangaluru: 'Karnataka',
+  mangalore: 'Karnataka',
+  mysuru: 'Karnataka',
+  mumbai: 'Maharashtra',
+  pune: 'Maharashtra',
+  nagpur: 'Maharashtra',
+  nashik: 'Maharashtra',
+  vadodara: 'Gujarat',
+  surat: 'Gujarat',
+  ahmedabad: 'Gujarat',
+  jamnagar: 'Gujarat',
+};
+
+const INDIAN_STATES = [
+  'Odisha',
+  'Tamil Nadu',
+  'Maharashtra',
+  'Gujarat',
+  'Karnataka',
+  'West Bengal',
+  'Jharkhand',
+  'Chhattisgarh',
+  'Andhra Pradesh',
+  'Telangana',
+  'Rajasthan',
+  'Uttar Pradesh',
+  'Madhya Pradesh',
+  'Haryana',
+  'Punjab',
+  'Delhi',
+  'Kerala',
+  'Assam',
+  'Bihar',
+  'Uttarakhand',
+  'Himachal Pradesh',
+  'Goa',
+  'Sikkim',
+  'Tripura',
+  'Meghalaya',
+  'Manipur',
+  'Nagaland',
+  'Mizoram',
+  'Arunachal Pradesh',
+];
+
 /**
- * Extracts consignee address and location from first consignee entry.
+ * Resolves the state or province for a given Indian pincode, city, or document context.
+ */
+export const resolveState = (pin = '', location = '', fullText = '') => {
+  // 1. Check Indian PIN code range (first 6 digits)
+  const cleanPin = String(pin).replace(/\D/g, '');
+  if (cleanPin.length === 6) {
+    const num = parseInt(cleanPin, 10);
+    const match = PIN_STATE_RANGES.find((r) => num >= r.min && num <= r.max);
+    if (match) return match.state;
+  }
+
+  // 2. Check known industrial cities/sites
+  const locLower = (location || '').toLowerCase().trim();
+  if (KNOWN_CITY_STATES[locLower]) {
+    return KNOWN_CITY_STATES[locLower];
+  }
+  for (const [city, st] of Object.entries(KNOWN_CITY_STATES)) {
+    if (locLower.includes(city)) {
+      return st;
+    }
+  }
+
+  // 3. Search document text / address for state name
+  const textToSearch = `${location} ${fullText}`.toLowerCase();
+  for (const stateName of INDIAN_STATES) {
+    if (textToSearch.includes(stateName.toLowerCase())) {
+      return stateName;
+    }
+  }
+
+  return '';
+};
+
+/**
+ * Formats location string to include the state/province (e.g. "BANHARPALI, Odisha").
+ */
+export const formatLocationWithState = (rawLocation = '', pin = '', fullText = '') => {
+  if (!rawLocation || rawLocation === NOT_FOUND) return NOT_FOUND;
+
+  // If already contains a comma and state/country (e.g. "Balikpapan, Indonesia" or "Mumbai, Maharashtra"), preserve
+  if (rawLocation.includes(',')) {
+    return rawLocation;
+  }
+
+  const state = resolveState(pin, rawLocation, fullText);
+  if (state && !rawLocation.toLowerCase().includes(state.toLowerCase())) {
+    return `${rawLocation}, ${state}`;
+  }
+
+  return rawLocation;
+};
+
+/**
+ * Extracts consignee address and location from first consignee entry, including state.
  */
 export const extractConsigneeDetails = (fullText) => {
   if (!fullText || typeof fullText !== 'string') {
-    return { consigneeAddress: NOT_FOUND, location: NOT_FOUND };
+    return { consigneeAddress: NOT_FOUND, location: NOT_FOUND, rawLocation: NOT_FOUND, pin: '' };
   }
 
   const pinMatch = fullText.match(
@@ -84,7 +262,7 @@ export const extractConsigneeDetails = (fullText) => {
   );
 
   if (!pinMatch) {
-    return { consigneeAddress: NOT_FOUND, location: NOT_FOUND };
+    return { consigneeAddress: NOT_FOUND, location: NOT_FOUND, rawLocation: NOT_FOUND, pin: '' };
   }
 
   const pin = pinMatch[1];
@@ -106,11 +284,15 @@ export const extractConsigneeDetails = (fullText) => {
     .split(',')
     .map((p) => p.trim())
     .filter(Boolean);
-  const location = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+  const rawLocation = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+  const location = formatLocationWithState(rawLocation, pin, fullText);
 
   return {
     consigneeAddress: consigneeAddress || NOT_FOUND,
     location: location || NOT_FOUND,
+    rawLocation: rawLocation || NOT_FOUND,
+    pin: pin || '',
+    state: resolveState(pin, rawLocation, fullText) || '',
   };
 };
 

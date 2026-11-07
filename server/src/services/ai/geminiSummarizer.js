@@ -6,7 +6,10 @@ let genAIInstance = null;
 
 const getGenAIClient = () => {
   if (!genAIInstance && env.geminiApiKey) {
-    genAIInstance = new GoogleGenAI({ apiKey: env.geminiApiKey });
+    genAIInstance = new GoogleGenAI({
+      apiKey: env.geminiApiKey,
+      apiVersion: 'v1beta',
+    });
   }
   return genAIInstance;
 };

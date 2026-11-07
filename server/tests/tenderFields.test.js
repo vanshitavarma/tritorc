@@ -109,11 +109,11 @@ describe('Tender Field Extraction & Configuration', () => {
     });
 
     describe('extractConsigneeDetails', () => {
-      it('extracts consignee pin and location from address text', () => {
+      it('extracts consignee pin and location from address text with state', () => {
         const text = `Consignees/Reporting Officer\n1 \tAshis Mohapatra \t768234,BANHARPALI \t1 \t30\nBuyer Added Bid Specific`;
         const { consigneeAddress, location } = extractConsigneeDetails(text);
         expect(consigneeAddress).toBe('768234,BANHARPALI');
-        expect(location).toBe('BANHARPALI');
+        expect(location).toBe('BANHARPALI, Odisha');
       });
 
       it('returns Not Found when no pincode address block is present', () => {
@@ -201,7 +201,7 @@ describe('Tender Field Extraction & Configuration', () => {
       expect(fields['Tender Amount']).toBe('INR 721,570');
       expect(fields['EMD']).toBe('Not Required');
       expect(fields['Email']).toBe('mohit.murmu@opgc.co.in');
-      expect(fields['Location']).toBe('BANHARPALI');
+      expect(fields['Location']).toBe('BANHARPALI, Odisha');
       expect(fields['Tab Name']).toBe('Cutting Tools, Shaping Machine');
       expect(fields['Tender Description']).toBe('TUBE BEVELING MACHINE');
       expect(fields['Scope of Work']).toBe('TUBE BEVELING MACHINE');
@@ -238,7 +238,7 @@ describe('Tender Field Extraction & Configuration', () => {
       expect(fields['Tender Amount']).toBe(NOT_FOUND);
       expect(fields['EMD']).toBe('Not Required');
       expect(fields['Email']).toBe('ksantosh@bhel.in');
-      expect(fields['Location']).toBe('INDIRA GANDHI COMPLEX');
+      expect(fields['Location']).toBe('INDIRA GANDHI COMPLEX, Tamil Nadu');
       expect(fields['Tab Name']).toBe('Rivet Nut (BHEL)');
       expect(fields['Tender Description']).toBe('HYDRAULIC NUT OF THREAD SIZE M140X2 (FD)');
       expect(fields['Scope of Work']).toBe('HYDRAULIC NUT OF THREAD SIZE M140X2 (FD)');
@@ -272,7 +272,7 @@ describe('Tender Field Extraction & Configuration', () => {
       expect(fields['Tender Amount']).toBe(NOT_FOUND);
       expect(fields['EMD']).toBe('Not Required');
       expect(fields['Email']).toBe('buyer26.rsp.or@gembuyer.in');
-      expect(fields['Location']).toBe('Rourkela');
+      expect(fields['Location']).toBe('Rourkela, Odisha');
       expect(fields['Tab Name']).toBe('Hydraulic Torque Wrench Set');
       expect(fields['Tender Description']).toBe('HYDRAULIC TORQUE WRENCH WITH POWER PACK');
       expect(fields['Scope of Work']).toBe('HYDRAULIC TORQUE WRENCH WITH POWER PACK');
