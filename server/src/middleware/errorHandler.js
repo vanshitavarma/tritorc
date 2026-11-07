@@ -12,6 +12,7 @@ export const errorHandler = (error, req, res, _next) => {
 
   res.status(statusCode).json({
     status: 'error',
+    code: error.code || 'INTERNAL_ERROR',
     message,
   });
 };
