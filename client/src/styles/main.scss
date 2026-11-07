@@ -1,0 +1,40 @@
+$primary-color: #0b3954;
+$background-color: #f7f9fa;
+$text-color: #1a1a1a;
+$font-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: $font-stack;
+  background-color: $background-color;
+  color: $text-color;
+}
+
+.tender-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  .tender-header {
+    padding: 1rem 2rem;
+    background-color: $primary-color;
+    color: #ffffff;
+
+    h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+  }
+
+  .tender-main {
+    flex: 1;
+    padding: 2rem;
+  }
+}

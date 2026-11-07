@@ -1,0 +1,16 @@
+Engineering Architecture & Notes
+
+1. Architecture and Layering
+- The server adheres to strict layered isolation: routes -> controllers -> services.
+- Services contain pure domain logic without Express dependencies (req, res, next) to maximize testability and reusability.
+- Configuration is centralized in server/src/config/env.js to fail fast on application boot if essential variables are missing.
+- Centralized error handling via AppError captures HTTP status codes and routes errors to structured logging.
+
+2. Document Parsing Strategy
+- PDF ingestion will use pinned pdf-parse (2.4.5) via its class-based API: new PDFParse({ data }).getText().
+- DOCX parsing will process raw document text via mammoth.
+- Text normalization and keyword tokenization will use Porter stemming via the `stemmer` package to ensure robust matching across morphological variants.
+
+3. Reporting Pipeline
+- Report generation adheres to the 24-column layout defined by docs/reference/sample_tender_scan_report.xlsx.
+- ExcelJS streams the generated report sheet "Tender Scan Report" with exact column headers and fallback values ("Not Found", "(none found)").
