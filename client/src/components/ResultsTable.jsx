@@ -6,9 +6,10 @@ export default function ResultsTable({ results, onSelectDocument }) {
   return (
     <div className="results-table-container">
       <div className="table-header-info">
-        <h3>Scan Results ({results.length})</h3>
+        <h3>Tender Intelligence Results ({results.length})</h3>
         <p className="table-hint">
-          Click &quot;View Details&quot; to inspect all 20 extracted GeM tender fields.
+          Click &quot;View Details&quot; to inspect concise executive summaries, qualification
+          criteria, and full 20 tender fields.
         </p>
       </div>
 
@@ -20,10 +21,11 @@ export default function ResultsTable({ results, onSelectDocument }) {
               <th>Relevance</th>
               <th>Match Count</th>
               <th>Matched Keywords</th>
+              <th>Category</th>
               <th>Tender No</th>
-              <th>Tender Authority</th>
-              <th>Estimated Value</th>
-              <th>Fields</th>
+              <th>Authority</th>
+              <th>Amount</th>
+              <th>Details</th>
             </tr>
           </thead>
           <tbody>
@@ -40,10 +42,15 @@ export default function ResultsTable({ results, onSelectDocument }) {
               return (
                 <tr
                   key={`${doc.documentName}-${idx}`}
-                  className={`row-${doc.relevance?.toLowerCase()}`}
+                  className={`row-${doc.relevance?.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   <td className="doc-name-cell" title={doc.documentName}>
-                    <strong>{doc.documentName}</strong>
+                    <div className="doc-title-wrapper">
+                      <strong className="doc-title-text">{doc.documentName}</strong>
+                      {doc.originalFileName && doc.originalFileName !== doc.documentName && (
+                        <span className="doc-file-tag">{doc.originalFileName}</span>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <RelevanceBadge relevance={doc.relevance} />
@@ -54,11 +61,16 @@ export default function ResultsTable({ results, onSelectDocument }) {
                   <td className="keywords-cell" title={matchedStr}>
                     {matchedStr}
                   </td>
+                  <td className="category-cell">
+                    <span className="category-tag">{tenderFields['Tab Name'] || 'General'}</span>
+                  </td>
                   <td>{tenderFields['Tender No'] || (isFailed ? 'Not Found' : '-')}</td>
                   <td className="authority-cell" title={tenderFields['Tender Authority']}>
                     {tenderFields['Tender Authority'] || (isFailed ? 'Not Found' : '-')}
                   </td>
-                  <td>{tenderFields['Tender Amount'] || (isFailed ? 'Not Found' : '-')}</td>
+                  <td className="amount-cell">
+                    {tenderFields['Tender Amount'] || (isFailed ? 'Not Found' : '-')}
+                  </td>
                   <td>
                     <button
                       type="button"

@@ -17,10 +17,16 @@ export const DATA_STYLE = {
 };
 
 export const THIN_BORDER = {
-  top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
-  left: { style: 'thin', color: { argb: 'FFD9D9D9' } },
-  bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } },
-  right: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+  top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+  left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+  bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+  right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+};
+
+export const ZEBRA_FILL = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFF8FAFC' },
 };
 
 export const VERDICT_COLORS = {
@@ -81,7 +87,7 @@ export const buildPrimaryRowValues = (doc = {}) => {
 };
 
 /**
- * Builds the primary 24-column "Tender Scan Report" worksheet matching sample layout.
+ * Builds the primary 24-column "Tender Scan Report" worksheet with corporate executive styling.
  */
 const buildPrimaryWorksheet = (workbook, results) => {
   const sheet = workbook.addWorksheet('Tender Scan Report', {
@@ -95,6 +101,18 @@ const buildPrimaryWorksheet = (workbook, results) => {
       },
     ],
   });
+
+  // Enable auto-filters on all 24 columns
+  sheet.autoFilter = 'A1:X1';
+
+  // Professional print setup
+  sheet.pageSetup = {
+    orientation: 'landscape',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+    printTitlesRow: '1:1',
+  };
 
   sheet.columns = REPORT_COLUMNS.map((col, idx) => ({
     header: col,
@@ -110,9 +128,11 @@ const buildPrimaryWorksheet = (workbook, results) => {
     cell.alignment = HEADER_STYLE.alignment;
   });
 
-  results.forEach((doc) => {
+  results.forEach((doc, rowIdx) => {
     const rowValues = buildPrimaryRowValues(doc);
     const row = sheet.addRow(rowValues);
+    const isOdd = rowIdx % 2 === 1;
+
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       cell.font = DATA_STYLE.font;
       cell.alignment = DATA_STYLE.alignment;
@@ -127,6 +147,9 @@ const buildPrimaryWorksheet = (workbook, results) => {
           pattern: 'solid',
           fgColor: { argb },
         };
+      } else if (isOdd) {
+        // Alternating subtle zebra striping
+        cell.fill = ZEBRA_FILL;
       }
     });
   });
@@ -149,8 +172,16 @@ const buildBreakdownWorksheet = (workbook, results) => {
     ],
   });
 
+  sheet.autoFilter = 'A1:D1';
+  sheet.pageSetup = {
+    orientation: 'landscape',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+  };
+
   const columns = [
-    { header: 'Document Name', width: 32 },
+    { header: 'Document Name', width: 34 },
     { header: 'Keyword', width: 28 },
     { header: 'Hits', width: 12 },
     { header: 'First Match Position', width: 20 },
@@ -210,7 +241,7 @@ const buildBreakdownWorksheet = (workbook, results) => {
 };
 
 /**
- * Builds secondary "AI Insights" worksheet ready for Lane B intelligence.
+ * Builds secondary "AI Insights" worksheet with strategic business intelligence.
  */
 const buildAiInsightsWorksheet = (workbook, results) => {
   const sheet = workbook.addWorksheet('AI Insights', {
@@ -224,13 +255,22 @@ const buildAiInsightsWorksheet = (workbook, results) => {
     ],
   });
 
+  sheet.autoFilter = 'A1:G1';
+  sheet.pageSetup = {
+    orientation: 'landscape',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+  };
+
   const columns = [
-    { header: 'Document Name', width: 30 },
+    { header: 'Document Name', width: 34 },
     { header: 'Baseline Verdict', width: 18 },
-    { header: 'AI Assessment', width: 20 },
-    { header: 'Executive Summary', width: 48 },
-    { header: 'Evidence Citations', width: 30 },
-    { header: 'Status', width: 18 },
+    { header: 'Semantic Assessment', width: 22 },
+    { header: 'AI Relevance Explanation', width: 48 },
+    { header: 'Key Opportunities', width: 40 },
+    { header: 'Risks and Unknowns', width: 36 },
+    { header: 'Recommended Human Follow-up', width: 36 },
   ];
 
   sheet.columns = columns.map((col, idx) => ({
@@ -247,24 +287,41 @@ const buildAiInsightsWorksheet = (workbook, results) => {
     cell.alignment = HEADER_STYLE.alignment;
   });
 
-  results.forEach((doc) => {
+  results.forEach((doc, rowIdx) => {
     const docName = doc.documentName || doc.originalName || 'document';
     const isFailed = doc.status === 'failed';
     const baseline = doc.relevance || doc.verdict || (isFailed ? 'Not Assessed' : 'Not Related');
     const aiAnalysis = doc.aiAnalysis || {};
 
-    const aiVerdict = aiAnalysis.verdict || aiAnalysis.assessment || 'Pending / Optional';
-    const summary = aiAnalysis.summary || 'AI analysis not executed for this deterministic scan.';
-    const citations = Array.isArray(aiAnalysis.citations)
-      ? aiAnalysis.citations.join(', ')
-      : aiAnalysis.citations || 'N/A';
-    const status = aiAnalysis.status || (isFailed ? 'Failed' : 'Deterministic Only');
+    const semantic = aiAnalysis.semanticAssessment || (isFailed ? 'Failed' : 'Deterministic Only');
+    const explanation =
+      aiAnalysis.aiExplanation || 'Deterministic keyword scan complete without AI generation.';
+    const opportunities =
+      aiAnalysis.keyOpportunities || (isFailed ? 'N/A' : 'Review tender scope.');
+    const risks =
+      aiAnalysis.risksAndUnknowns || (isFailed ? doc.error || 'Failed' : 'Standard review.');
+    const followUp =
+      aiAnalysis.recommendedFollowUp ||
+      (baseline === 'Related' ? 'Pursue commercial bid.' : 'Archive.');
 
-    const row = sheet.addRow([docName, baseline, aiVerdict, summary, citations, status]);
+    const row = sheet.addRow([
+      docName,
+      baseline,
+      semantic,
+      explanation,
+      opportunities,
+      risks,
+      followUp,
+    ]);
+
+    const isOdd = rowIdx % 2 === 1;
     row.eachCell({ includeEmpty: true }, (cell) => {
       cell.font = DATA_STYLE.font;
       cell.alignment = DATA_STYLE.alignment;
       cell.border = THIN_BORDER;
+      if (isOdd) {
+        cell.fill = ZEBRA_FILL;
+      }
     });
   });
 
@@ -272,7 +329,7 @@ const buildAiInsightsWorksheet = (workbook, results) => {
 };
 
 /**
- * Generates an Excel workbook matching the 24-column reference report.
+ * Generates an executive Excel workbook matching the 24-column corporate reference report.
  *
  * @param {Array<Object>} results - Document scan results
  * @param {Object} [options]

@@ -54,13 +54,21 @@ describe('Scan REST API Integration Tests', () => {
       expect(res.body.data.totalFiles).toBe(2);
       expect(res.body.data.results).toHaveLength(2);
 
-      const sailResult = res.body.data.results.find((r) => r.documentName.includes('9649647'));
+      const sailResult = res.body.data.results.find((r) =>
+        (r.originalFileName || r.documentName).includes('9649647')
+      );
       expect(sailResult).toBeDefined();
+      expect(sailResult.originalFileName).toContain('9649647');
+      expect(sailResult.documentName).toContain('SAIL');
       expect(sailResult.relevance).toBe('Related');
       expect(sailResult.distinctCount).toBe(3);
 
-      const opgcResult = res.body.data.results.find((r) => r.documentName.includes('9563430'));
+      const opgcResult = res.body.data.results.find((r) =>
+        (r.originalFileName || r.documentName).includes('9563430')
+      );
       expect(opgcResult).toBeDefined();
+      expect(opgcResult.originalFileName).toContain('9563430');
+      expect(opgcResult.documentName).toContain('OPGC');
       expect(opgcResult.relevance).toBe('Not Related');
       expect(opgcResult.distinctCount).toBe(0);
 
@@ -80,10 +88,14 @@ describe('Scan REST API Integration Tests', () => {
       expect(res.status).toBe(201);
       expect(res.body.data.results).toHaveLength(2);
 
-      const validResult = res.body.data.results.find((r) => r.documentName.includes('civil_works'));
+      const validResult = res.body.data.results.find((r) =>
+        (r.originalFileName || r.documentName).includes('civil_works')
+      );
       expect(validResult.status).toBe('scanned');
 
-      const brokenResult = res.body.data.results.find((r) => r.documentName.includes('broken'));
+      const brokenResult = res.body.data.results.find((r) =>
+        (r.originalFileName || r.documentName).includes('broken')
+      );
       expect(brokenResult.status).toBe('failed');
       expect(brokenResult.relevance).toBe('Not Assessed');
     });

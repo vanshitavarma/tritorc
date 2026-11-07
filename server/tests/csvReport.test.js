@@ -263,7 +263,8 @@ describe('CSV Report Generation & RFC 4180 Compliance', () => {
 
       const rows = parseRfc4180Csv(text);
       expect(rows[0]).toEqual(REPORT_COLUMNS);
-      expect(rows[1][0]).toBe('relevant_sow.docx');
+      // Column 1 is intelligent Document Name (human-readable title)
+      expect(rows[1][0]).toBe('Relevant SOW');
       expect(rows[1][23]).toBe('Related');
     });
 

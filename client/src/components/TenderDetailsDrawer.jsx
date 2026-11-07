@@ -3,14 +3,18 @@ export default function TenderDetailsDrawer({ document, onClose }) {
 
   const tenderFields = document.tenderFields || {};
   const isFailed = document.status === 'failed';
+  const aiAnalysis = document.aiAnalysis || {};
 
   return (
     <div className="drawer-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div className="drawer-container" onClick={(e) => e.stopPropagation()}>
         <div className="drawer-header">
           <div>
-            <h3>Tender Field Details</h3>
+            <h3>Tender Intelligence Details</h3>
             <p className="doc-subtitle">{document.documentName}</p>
+            {document.originalFileName && document.originalFileName !== document.documentName && (
+              <span className="doc-file-tag">Original: {document.originalFileName}</span>
+            )}
           </div>
           <button type="button" className="btn-close-drawer" onClick={onClose}>
             &times;
@@ -25,9 +29,22 @@ export default function TenderDetailsDrawer({ document, onClose }) {
             </div>
           ) : (
             <div className="fields-grid">
+              {/* Executive Summary */}
+              <div className="field-card full-width summary-highlight">
+                <span className="field-title">Executive Summary</span>
+                <p className="field-prose">{tenderFields['Tender Summary'] || 'Not Found'}</p>
+              </div>
+
+              {/* Core Identifiers */}
               <div className="field-card">
                 <span className="field-title">Tender No</span>
                 <span className="field-val">{tenderFields['Tender No'] || 'Not Found'}</span>
+              </div>
+              <div className="field-card">
+                <span className="field-title">Work Category (Tab Name)</span>
+                <span className="field-val highlight-blue">
+                  {tenderFields['Tab Name'] || 'Not Found'}
+                </span>
               </div>
               <div className="field-card">
                 <span className="field-title">Tender Authority</span>
@@ -46,8 +63,8 @@ export default function TenderDetailsDrawer({ document, onClose }) {
                 <span className="field-val">{tenderFields['Closing Date'] || 'Not Found'}</span>
               </div>
               <div className="field-card">
-                <span className="field-title">Estimated Amount</span>
-                <span className="field-val highlight">
+                <span className="field-title">Tender Amount</span>
+                <span className="field-val highlight-green">
                   {tenderFields['Tender Amount'] || 'Not Found'}
                 </span>
               </div>
@@ -55,40 +72,70 @@ export default function TenderDetailsDrawer({ document, onClose }) {
                 <span className="field-title">EMD</span>
                 <span className="field-val">{tenderFields['EMD'] || 'Not Found'}</span>
               </div>
-              <div className="field-card">
-                <span className="field-title">Email</span>
-                <span className="field-val">{tenderFields['Email'] || 'Not Found'}</span>
-              </div>
+
+              {/* Scope & Description */}
               <div className="field-card full-width">
-                <span className="field-title">Item Category / Description</span>
-                <span className="field-val">
-                  {tenderFields['Tender Description'] || 'Not Found'}
-                </span>
+                <span className="field-title">Scope of Work (Concise Summary)</span>
+                <p className="field-prose">{tenderFields['Scope of Work'] || 'Not Found'}</p>
               </div>
+
               <div className="field-card full-width">
-                <span className="field-title">Scope of Work</span>
-                <span className="field-val">{tenderFields['Scope of Work'] || 'Not Found'}</span>
+                <span className="field-title">Project Description</span>
+                <p className="field-prose">{tenderFields['Tender Description'] || 'Not Found'}</p>
               </div>
+
+              {/* Qualifications */}
               <div className="field-card full-width">
-                <span className="field-title">Technical Qualification</span>
-                <span className="field-val">
+                <span className="field-title">Technical Qualification Requirements</span>
+                <p className="field-prose">
                   {tenderFields['Technical Qualification'] || 'Not Found'}
-                </span>
+                </p>
               </div>
+
               <div className="field-card full-width">
-                <span className="field-title">Notification Categories (Tab Name)</span>
-                <span className="field-val">{tenderFields['Tab Name'] || 'Not Found'}</span>
+                <span className="field-title">Financial Qualification Requirements</span>
+                <p className="field-prose">
+                  {tenderFields['Financial Qualification'] || 'Not Found'}
+                </p>
               </div>
+
+              <div className="field-card full-width">
+                <span className="field-title">Corrigendum / Addenda</span>
+                <span className="field-val">{tenderFields['Corrigendum'] || 'Not Found'}</span>
+              </div>
+
+              {/* Contact info */}
               <div className="field-card full-width">
                 <span className="field-title">Purchaser Address</span>
                 <span className="field-val">
                   {tenderFields['Purchaser Address'] || 'Not Found'}
                 </span>
               </div>
-              <div className="field-card full-width">
-                <span className="field-title">Deterministic Summary</span>
-                <span className="field-val">{tenderFields['Tender Summary'] || 'Not Found'}</span>
+              <div className="field-card">
+                <span className="field-title">Email</span>
+                <span className="field-val">{tenderFields['Email'] || 'Not Found'}</span>
               </div>
+              <div className="field-card">
+                <span className="field-title">Website</span>
+                <span className="field-val">{tenderFields['Website'] || 'Not Found'}</span>
+              </div>
+
+              {/* Strategic Business AI Insights */}
+              {aiAnalysis.aiExplanation && (
+                <div className="field-card full-width ai-insights-box">
+                  <span className="field-title">Strategic Business Relevance Insights</span>
+                  <p className="field-prose">
+                    <strong>Semantic Assessment:</strong> {aiAnalysis.semanticAssessment || 'N/A'}
+                    <br />
+                    <strong>Analysis:</strong> {aiAnalysis.aiExplanation}
+                    <br />
+                    <strong>Key Opportunities:</strong> {aiAnalysis.keyOpportunities || 'N/A'}
+                    <br />
+                    <strong>Recommended Follow-up:</strong>{' '}
+                    {aiAnalysis.recommendedFollowUp || 'N/A'}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

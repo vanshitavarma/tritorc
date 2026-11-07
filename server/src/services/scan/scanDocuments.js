@@ -2,39 +2,57 @@ import { extractText } from '../extraction/extractText.js';
 import { scanText } from '../matching/scanText.js';
 import { classifyRelevance } from '../relevance/classifyRelevance.js';
 import { extractTenderFields } from '../tender/extractTenderFields.js';
+import { summarizeTenderFields } from '../tender/summarizeTenderFields.js';
 import { loadKeywords } from '../../config/keywords.js';
 import { logger } from '../../utils/logger.js';
 
 /**
- * Scans a single document buffer through the deterministic pipeline.
+ * Scans and produces intelligent business intelligence for a single document.
  */
 export const scanSingleDocument = async (file, keywords) => {
-  const documentName = file.originalname || 'document';
+  const originalFileName = file.originalname || 'document';
   try {
     const extracted = await extractText({
       buffer: file.buffer,
-      originalName: documentName,
+      originalName: originalFileName,
       mimeType: file.mimetype,
     });
 
     const scan = scanText(extracted.text, keywords);
     const relevance = classifyRelevance(scan);
-    const tenderFields = extractTenderFields(extracted.text);
+    const rawTenderFields = extractTenderFields(extracted.text);
+
+    // Advanced tender intelligence summarization
+    const summaryResult = await summarizeTenderFields({
+      rawFields: rawTenderFields,
+      fullText: extracted.text,
+      originalName: originalFileName,
+      relevance,
+    });
+
+    const tenderFields = {
+      ...rawTenderFields,
+      ...summaryResult.enhancedFields,
+    };
 
     return {
-      documentName,
+      documentName: summaryResult.intelligentDocumentName,
+      originalFileName,
       status: 'scanned',
       matches: scan.matches,
       distinctCount: scan.distinctCount,
       totalHits: scan.totalHits,
       relevance,
       tenderFields,
+      aiAnalysis: summaryResult.aiInsights,
+      evidence: summaryResult.evidence,
       metadata: extracted.metadata,
     };
   } catch (error) {
-    logger.warn(`Scan error for file "${documentName}": ${error.message}`);
+    logger.warn(`Scan error for file "${originalFileName}": ${error.message}`);
     return {
-      documentName,
+      documentName: originalFileName,
+      originalFileName,
       status: 'failed',
       error: error.message,
       matches: [],
@@ -42,6 +60,8 @@ export const scanSingleDocument = async (file, keywords) => {
       totalHits: 0,
       relevance: 'Not Assessed',
       tenderFields: {},
+      aiAnalysis: null,
+      evidence: null,
     };
   }
 };
@@ -63,9 +83,10 @@ export const scanDocuments = async (files = [], customKeywords = null) => {
     if (result.status === 'fulfilled') {
       return result.value;
     }
-    const documentName = files[idx]?.originalname || 'document';
+    const originalFileName = files[idx]?.originalname || 'document';
     return {
-      documentName,
+      documentName: originalFileName,
+      originalFileName,
       status: 'failed',
       error: result.reason?.message || 'Processing error',
       matches: [],
@@ -73,6 +94,8 @@ export const scanDocuments = async (files = [], customKeywords = null) => {
       totalHits: 0,
       relevance: 'Not Assessed',
       tenderFields: {},
+      aiAnalysis: null,
+      evidence: null,
     };
   });
 };

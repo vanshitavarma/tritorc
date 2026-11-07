@@ -238,16 +238,17 @@ describe('Excel Report Generation (buildWorkbook)', () => {
       expect(bdSheet.getRow(4).getCell(3).value).toBe(0);
     });
 
-    it('generates AI Insights sheet with status and findings placeholder', async () => {
+    it('generates AI Insights sheet with strategic business intelligence', async () => {
       const mockResults = [
         {
           documentName: 'tender.pdf',
           relevance: 'Related',
           aiAnalysis: {
-            verdict: 'High Bolting Fit',
-            summary: 'Tender specifies high-pressure hydraulic torque tools.',
-            citations: ['p. 2', 'p. 5'],
-            status: 'completed',
+            semanticAssessment: 'High Bolting Relevance',
+            aiExplanation: 'Tender specifies high-pressure hydraulic torque tools.',
+            keyOpportunities: 'Hydraulic torque wrenches and power packs',
+            risksAndUnknowns: 'Strict 15-day delivery window',
+            recommendedFollowUp: 'Pursue commercial bid.',
           },
         },
       ];
@@ -261,17 +262,20 @@ describe('Excel Report Generation (buildWorkbook)', () => {
       expect(aiSheet.getRow(1).values.slice(1)).toEqual([
         'Document Name',
         'Baseline Verdict',
-        'AI Assessment',
-        'Executive Summary',
-        'Evidence Citations',
-        'Status',
+        'Semantic Assessment',
+        'AI Relevance Explanation',
+        'Key Opportunities',
+        'Risks and Unknowns',
+        'Recommended Human Follow-up',
       ]);
 
       expect(aiSheet.getRow(2).getCell(1).value).toBe('tender.pdf');
       expect(aiSheet.getRow(2).getCell(2).value).toBe('Related');
-      expect(aiSheet.getRow(2).getCell(3).value).toBe('High Bolting Fit');
-      expect(aiSheet.getRow(2).getCell(5).value).toBe('p. 2, p. 5');
-      expect(aiSheet.getRow(2).getCell(6).value).toBe('completed');
+      expect(aiSheet.getRow(2).getCell(3).value).toBe('High Bolting Relevance');
+      expect(aiSheet.getRow(2).getCell(4).value).toContain('hydraulic torque tools');
+      expect(aiSheet.getRow(2).getCell(5).value).toContain('power packs');
+      expect(aiSheet.getRow(2).getCell(6).value).toContain('15-day');
+      expect(aiSheet.getRow(2).getCell(7).value).toBe('Pursue commercial bid.');
     });
 
     it('respects options to exclude secondary worksheets', async () => {
