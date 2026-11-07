@@ -1,0 +1,6 @@
+{
+  "relatedMinDistinct": 3,
+  "relatedMinTotalHits": 10,
+  "possibleMinDistinct": 1,
+  "maxWordGap": 1
+}
