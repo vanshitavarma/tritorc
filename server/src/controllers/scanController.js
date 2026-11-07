@@ -3,6 +3,7 @@ import { scanStore } from '../services/scan/scanStore.js';
 import { buildWorkbook } from '../services/report/buildWorkbook.js';
 import { buildCsvReport } from '../services/report/buildCsv.js';
 import { persistScanSession, getPersistedScan } from '../services/persistence/mongoPersistence.js';
+import { getDatabaseStatus } from '../config/database.js';
 import { loadKeywords } from '../config/keywords.js';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
@@ -173,6 +174,54 @@ export const downloadCsvReport = async (req, res, next) => {
     res.setHeader('Content-Length', csvBuffer.length);
 
     res.status(200).send(csvBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getScans = async (req, res, next) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const skip = (page - 1) * limit;
+
+    let scans = [];
+    let total = 0;
+
+    const dbStatus = getDatabaseStatus();
+    if (dbStatus.isReady) {
+      try {
+        const { Scan } = await import('../models/Scan.js');
+        total = await Scan.countDocuments();
+        scans = await Scan.find()
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean();
+      } catch {
+        // Fallback to in-memory scans if MongoDB query fails
+      }
+    }
+
+    if (scans.length === 0) {
+      const memoryScans = scanStore.getAllScans ? scanStore.getAllScans() : [];
+      total = memoryScans.length;
+      scans = memoryScans.slice(skip, skip + limit);
+    }
+
+    res.status(200).json({
+      success: true,
+      status: 'success',
+      data: {
+        scans,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit) || 1,
+        },
+      },
+    });
   } catch (error) {
     next(error);
   }

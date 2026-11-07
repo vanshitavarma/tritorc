@@ -271,7 +271,7 @@ const buildAiInsightsWorksheet = (workbook, results) => {
     ],
   });
 
-  sheet.autoFilter = 'A1:G1';
+  sheet.autoFilter = 'A1:J1';
   sheet.pageSetup = {
     orientation: 'landscape',
     fitToPage: true,
@@ -282,6 +282,9 @@ const buildAiInsightsWorksheet = (workbook, results) => {
   const columns = [
     { header: 'Document Name', width: 34 },
     { header: 'Baseline Verdict', width: 18 },
+    { header: 'Hybrid Score (0-100)', width: 22 },
+    { header: 'Hybrid Grade', width: 20 },
+    { header: 'Score Breakdown (K/S/T/W)', width: 28 },
     { header: 'Semantic Assessment', width: 22 },
     { header: 'AI Relevance Explanation', width: 48 },
     { header: 'Key Opportunities', width: 40 },
@@ -328,9 +331,31 @@ const buildAiInsightsWorksheet = (workbook, results) => {
       aiAnalysis.recommendedFollowUp ||
       (baseline === 'Related' ? 'Pursue commercial bid.' : 'Archive.');
 
+    const hs = doc.hybridScore || aiAnalysis.hybridScore || null;
+    const hybridScoreVal = hs
+      ? hs.totalScore
+      : doc.relevance === 'Related'
+        ? 85
+        : doc.relevance === 'Possible'
+          ? 55
+          : 15;
+    const hybridGrade = hs
+      ? hs.grade
+      : doc.relevance === 'Related'
+        ? 'Highly Relevant'
+        : doc.relevance === 'Possible'
+          ? 'Possible'
+          : 'Not Relevant';
+    const breakdownStr = hs?.breakdown
+      ? `K:${hs.breakdown.keyword}/30 S:${hs.breakdown.semantic}/25 T:${hs.breakdown.technical}/25 W:${hs.breakdown.scope}/20`
+      : 'Standard Evaluation';
+
     const row = sheet.addRow([
       docName,
       baseline,
+      hybridScoreVal,
+      hybridGrade,
+      breakdownStr,
       semantic,
       explanation,
       opportunities,

@@ -42,7 +42,7 @@ export const connectDatabase = async (uri = env.mongodbUri, options = {}) => {
   logger.info(`Connecting to MongoDB at ${sanitizedUri}...`);
 
   await mongoose.connect(uri, {
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 15000,
     ...options,
   });
 

@@ -6,6 +6,7 @@ import StatusBanner from '../components/StatusBanner.jsx';
 import DownloadReportButton from '../components/DownloadReportButton.jsx';
 import ResultsTable from '../components/ResultsTable.jsx';
 import TenderDetailsDrawer from '../components/TenderDetailsDrawer.jsx';
+import TenderChatDrawer from '../components/TenderChatDrawer.jsx';
 
 export default function ScannerPage() {
   const {
@@ -23,16 +24,28 @@ export default function ScannerPage() {
   } = useScan();
 
   const [showKeywords, setShowKeywords] = useState(false);
+  const [chatDoc, setChatDoc] = useState(null);
   const isScanning = status === 'uploading';
+
+  // Compute dashboard statistics
+  const results = scanResult?.results || [];
+  const validTenders = results.filter(
+    (r) => r.isValidTender !== false && r.status !== 'rejected' && r.status !== 'review_needed'
+  );
+  const relatedCount = validTenders.filter((r) => r.relevance === 'Related').length;
+  const possibleCount = validTenders.filter((r) => r.relevance === 'Possible').length;
+  const nonTenderCount = results.filter(
+    (r) => r.isValidTender === false || r.status === 'rejected' || r.documentType === 'NON_TENDER'
+  ).length;
 
   return (
     <div className="scanner-page">
       <div className="hero-section">
-        <h2>Tritorc Tender Relevance Scanner</h2>
+        <h2>Tritorc Tender Intelligence &amp; RAG Copilot</h2>
         <p className="hero-subtitle">
-          Upload PDF or DOCX tender documents to match against Tritorc bolting and flange management
-          keywords, compute deterministic baseline verdicts, extract 20 GeM tender fields, and
-          download the 24-column Excel report.
+          Upload PDF or DOCX procurement documents to match Tritorc bolting and flange management
+          keywords, run deep AI summarization, compute 100-point hybrid relevance scores, and chat
+          with individual tenders using grounded citations.
         </p>
 
         <div className="keywords-pill-bar">
@@ -93,6 +106,35 @@ export default function ScannerPage() {
 
         {scanResult && scanResult.results && (
           <div className="results-section">
+            {/* Dashboard Metric Stat Cards */}
+            <div className="dashboard-metrics-grid">
+              <div className="metric-card">
+                <span className="metric-title">Total Scanned</span>
+                <strong className="metric-number">{results.length}</strong>
+                <span className="metric-sub">Processed documents</span>
+              </div>
+              <div className="metric-card metric-valid">
+                <span className="metric-title">Verified Tenders</span>
+                <strong className="metric-number">{validTenders.length}</strong>
+                <span className="metric-sub">SOW &amp; tenders</span>
+              </div>
+              <div className="metric-card metric-related">
+                <span className="metric-title">Related / Target</span>
+                <strong className="metric-number">{relatedCount}</strong>
+                <span className="metric-sub">&gt;= 3 keywords, &gt;= 10 hits</span>
+              </div>
+              <div className="metric-card metric-possible">
+                <span className="metric-title">Possible</span>
+                <strong className="metric-number">{possibleCount}</strong>
+                <span className="metric-sub">Borderline scope</span>
+              </div>
+              <div className="metric-card metric-excluded">
+                <span className="metric-title">Non-Tenders Excluded</span>
+                <strong className="metric-number">{nonTenderCount}</strong>
+                <span className="metric-sub">Filtered non-procurement</span>
+              </div>
+            </div>
+
             <div className="results-toolbar">
               <StatusBanner results={scanResult.results} />
               <DownloadReportButton
@@ -102,12 +144,26 @@ export default function ScannerPage() {
               />
             </div>
 
-            <ResultsTable results={scanResult.results} onSelectDocument={setActiveDrawerDoc} />
+            <ResultsTable
+              results={scanResult.results}
+              onSelectDocument={setActiveDrawerDoc}
+              onOpenChat={setChatDoc}
+            />
           </div>
         )}
       </div>
 
-      <TenderDetailsDrawer document={activeDrawerDoc} onClose={() => setActiveDrawerDoc(null)} />
+      <TenderDetailsDrawer
+        document={activeDrawerDoc}
+        onClose={() => setActiveDrawerDoc(null)}
+        onOpenChat={setChatDoc}
+      />
+
+      <TenderChatDrawer
+        document={chatDoc}
+        isOpen={Boolean(chatDoc)}
+        onClose={() => setChatDoc(null)}
+      />
     </div>
   );
 }

@@ -70,10 +70,27 @@ class ScanStore {
     return record.buffer;
   }
 
+  getAllScans() {
+    const valid = [];
+    const now = Date.now();
+    for (const [id, record] of this.scans.entries()) {
+      if (now > record.expiresAt) {
+        this.scans.delete(id);
+      } else {
+        valid.push(record);
+      }
+    }
+    return valid;
+  }
+
   clear() {
     this.scans.clear();
     this.reports.clear();
     this.csvReports.clear();
+  }
+
+  clearAll() {
+    this.clear();
   }
 }
 

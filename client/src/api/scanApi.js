@@ -122,3 +122,78 @@ export function getDownloadReportUrl(scanId) {
 export function getDownloadCsvUrl(scanId) {
   return `/api/scans/${scanId}/csv`;
 }
+
+export async function chatWithDocument(documentId, { message, conversationHistory = [] }) {
+  if (!documentId) throw new Error('Document ID is required for chat');
+  if (!message || !message.trim()) throw new Error('Message cannot be empty');
+
+  let response;
+  try {
+    response = await fetch(`/api/documents/${documentId}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, conversationHistory }),
+    });
+  } catch (netErr) {
+    throw new Error(`Chat network error: ${netErr.message}`);
+  }
+
+  const json = await parseApiResponse(response, 'Failed to complete tender chat');
+  return json.data;
+}
+
+export async function fetchDocumentDetails(documentId) {
+  if (!documentId) throw new Error('Document ID is required');
+
+  let response;
+  try {
+    response = await fetch(`/api/documents/${documentId}`);
+  } catch (netErr) {
+    throw new Error(`Failed to retrieve document details: ${netErr.message}`);
+  }
+
+  const json = await parseApiResponse(response, 'Failed to fetch document');
+  return json.data;
+}
+
+export async function analyzeDocument(documentId) {
+  if (!documentId) throw new Error('Document ID is required');
+
+  let response;
+  try {
+    response = await fetch(`/api/documents/${documentId}/analyze`, {
+      method: 'POST',
+    });
+  } catch (netErr) {
+    throw new Error(`Analysis failed: ${netErr.message}`);
+  }
+
+  const json = await parseApiResponse(response, 'Failed to analyze tender document');
+  return json.data;
+}
+
+export async function fetchDocumentInsights(documentId) {
+  if (!documentId) return null;
+
+  let response;
+  try {
+    response = await fetch(`/api/documents/${documentId}/insights`);
+  } catch {
+    return null;
+  }
+
+  const json = await parseApiResponse(response, 'Failed to fetch insights');
+  return json.data;
+}
+
+export async function fetchScanHistory(page = 1, limit = 10) {
+  let response;
+  try {
+    response = await fetch(`/api/scans?page=${page}&limit=${limit}`);
+  } catch (netErr) {
+    throw new Error(`Failed to load scan history: ${netErr.message}`);
+  }
+
+  const json = await parseApiResponse(response, 'Failed to fetch scans');
+  return json.data;
+}

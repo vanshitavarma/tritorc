@@ -1,7 +1,8 @@
 import RelevanceBadge from './RelevanceBadge.jsx';
 import DocumentTypeBadge from './DocumentTypeBadge.jsx';
+import HybridScoreBadge from './HybridScoreBadge.jsx';
 
-export default function ResultsTable({ results, onSelectDocument }) {
+export default function ResultsTable({ results, onSelectDocument, onOpenChat }) {
   if (!results || results.length === 0) return null;
 
   const validTenders = results.filter(
@@ -25,8 +26,7 @@ export default function ResultsTable({ results, onSelectDocument }) {
           Verified Tender Intelligence ({validTenders.length} of {results.length} processed)
         </h3>
         <p className="table-hint">
-          Click &quot;View Details&quot; to inspect executive summaries, qualification criteria, and
-          full 20 tender fields.
+          Click &quot;Chat AI&quot; for grounded interactive Q&amp;A or &quot;View Details&quot; to inspect executive summaries and technical qualification criteria.
         </p>
       </div>
 
@@ -48,13 +48,14 @@ export default function ResultsTable({ results, onSelectDocument }) {
                 <th>Document Name</th>
                 <th>Type</th>
                 <th>Relevance</th>
+                <th>AI Score</th>
                 <th>Match Count</th>
                 <th>Matched Keywords</th>
-                <th>Category</th>
+                <th>Location</th>
                 <th>Tender No</th>
                 <th>Authority</th>
                 <th>Amount</th>
-                <th>Details</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -67,6 +68,15 @@ export default function ResultsTable({ results, onSelectDocument }) {
                   : matches.length > 0
                     ? matches.map((m) => (typeof m === 'string' ? m : m.keyword)).join(', ')
                     : '(none found)';
+
+                const loc = tenderFields['Location'] || '-';
+
+                // Calculate or read hybrid score
+                const hybrid = doc.hybridScore || doc.aiAnalysis?.hybridScore || null;
+                const defaultScore =
+                  doc.relevance === 'Related' ? 85 : doc.relevance === 'Possible' ? 55 : 15;
+                const scoreVal = hybrid ? hybrid.totalScore ?? hybrid.score : defaultScore;
+                const gradeVal = hybrid ? hybrid.grade : (doc.relevance === 'Related' ? 'Highly Relevant' : doc.relevance === 'Possible' ? 'Possible' : 'Not Relevant');
 
                 return (
                   <tr
@@ -90,14 +100,22 @@ export default function ResultsTable({ results, onSelectDocument }) {
                     <td>
                       <RelevanceBadge relevance={doc.relevance} />
                     </td>
+                    <td className="score-cell">
+                      <HybridScoreBadge
+                        score={scoreVal}
+                        grade={gradeVal}
+                        breakdown={hybrid?.breakdown}
+                        isProvisional={hybrid?.isProvisional}
+                      />
+                    </td>
                     <td className="match-count-cell">
                       <span className="count-pill">{isFailed ? 0 : (doc.distinctCount ?? 0)}</span>
                     </td>
                     <td className="keywords-cell" title={matchedStr}>
                       {matchedStr}
                     </td>
-                    <td className="category-cell">
-                      <span className="category-tag">{tenderFields['Tab Name'] || 'General'}</span>
+                    <td className="location-cell" title={loc}>
+                      <span className="location-text">{loc}</span>
                     </td>
                     <td>{tenderFields['Tender No'] || (isFailed ? 'Not Found' : '-')}</td>
                     <td className="authority-cell" title={tenderFields['Tender Authority']}>
@@ -106,14 +124,27 @@ export default function ResultsTable({ results, onSelectDocument }) {
                     <td className="amount-cell">
                       {tenderFields['Tender Amount'] || (isFailed ? 'Not Found' : '-')}
                     </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn-view-details"
-                        onClick={() => onSelectDocument(doc)}
-                      >
-                        View Details
-                      </button>
+                    <td className="actions-cell">
+                      <div className="table-actions-group">
+                        {onOpenChat && (
+                          <button
+                            type="button"
+                            className="btn-chat-ai"
+                            onClick={() => onOpenChat(doc)}
+                            title="Open interactive grounded tender copilot"
+                          >
+                            💬 Chat
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="btn-view-details"
+                          onClick={() => onSelectDocument(doc)}
+                          title="View executive summary and qualification criteria"
+                        >
+                          Details
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
