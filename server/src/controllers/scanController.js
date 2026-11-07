@@ -2,8 +2,10 @@ import { scanDocuments } from '../services/scan/scanDocuments.js';
 import { scanStore } from '../services/scan/scanStore.js';
 import { buildWorkbook } from '../services/report/buildWorkbook.js';
 import { buildCsvReport } from '../services/report/buildCsv.js';
+import { persistScanSession, getPersistedScan } from '../services/persistence/mongoPersistence.js';
 import { loadKeywords } from '../config/keywords.js';
 import { AppError } from '../utils/AppError.js';
+import { logger } from '../utils/logger.js';
 
 export const getKeywords = async (_req, res, next) => {
   try {
@@ -47,6 +49,17 @@ export const createScan = async (req, res, next) => {
     scanStore.saveReport(scanId, reportBuffer);
     scanStore.saveCsvReport(scanId, csvBuffer);
 
+    // Asynchronously persist to MongoDB Atlas if connected
+    persistScanSession({
+      scanId,
+      scannedAt,
+      totalFiles: req.files.length,
+      results,
+      files: req.files,
+    }).catch((persistErr) => {
+      logger.warn(`MongoDB persistence background error for scan ${scanId}: ${persistErr.message}`);
+    });
+
     const successful = results.filter((r) => r.status === 'scanned').length;
     const failed = results.filter((r) => r.status === 'failed').length;
     const rejected = results.filter((r) => r.status === 'rejected').length;
@@ -79,7 +92,19 @@ export const createScan = async (req, res, next) => {
 
 export const getScanById = async (req, res, next) => {
   try {
-    const scan = scanStore.getScan(req.params.id);
+    let scan = scanStore.getScan(req.params.id);
+    if (!scan) {
+      const persisted = await getPersistedScan(req.params.id);
+      if (persisted && persisted.scan) {
+        scan = {
+          scanId: persisted.scan.scanId,
+          scannedAt: persisted.scan.createdAt,
+          totalFiles: persisted.scan.fileCounts?.total || persisted.documents?.length || 0,
+          results: persisted.documents,
+        };
+      }
+    }
+
     if (!scan) {
       throw new AppError('Scan not found or expired.', 404, 'NOT_FOUND');
     }

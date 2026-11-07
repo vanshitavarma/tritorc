@@ -84,6 +84,7 @@ export const scanSingleDocument = async (file, keywords) => {
       totalHits: scan.totalHits,
       relevance,
       tenderFields,
+      text: extracted.text,
       aiAnalysis: summaryResult.aiInsights,
       evidence: summaryResult.evidence,
       metadata: extracted.metadata,
